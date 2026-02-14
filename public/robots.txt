@@ -1,0 +1,3 @@
+User-Agent: *
+Allow: /
+Sitemap: https://doujindesu.web.id/sitemap.xml
