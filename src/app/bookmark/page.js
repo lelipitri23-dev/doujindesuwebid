@@ -1,3 +1,4 @@
+import { Suspense } from 'react'; //
 import BookmarksClient from './BookmarksClient';
 import { SITE_CONFIG } from '@/lib/config';
 
@@ -21,5 +22,14 @@ export const metadata = {
 };
 
 export default function BookmarksPage() {
-  return <BookmarksClient />;
+  return (
+    // Membungkus BookmarksClient dengan Suspense untuk menangani useSearchParams
+    <Suspense fallback={
+      <main className="min-h-screen bg-dark flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
+      </main>
+    }>
+      <BookmarksClient />
+    </Suspense>
+  );
 }
