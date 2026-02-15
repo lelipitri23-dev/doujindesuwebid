@@ -21,23 +21,25 @@ async function searchManga(query) {
   }
 }
 
-// --- GENERATE METADATA ---
+// --- GENERATE METADATA (SEO) ---
 export async function generateMetadata({ searchParams }) {
   const sp = await searchParams;
   const query = sp.q || '';
-  
-  const title = query ? `Hasil Pencarian: "${query}"` : 'Pencarian Komik';
-  
+
+  const title = query 
+    ? `Hasil Pencarian: "${query}" - ${SITE_CONFIG.name}` 
+    : `Pencarian Komik - ${SITE_CONFIG.name}`;
+
   return {
     title: title,
-    description: `Hasil pencarian komik untuk "${query}" di database ${SITE_CONFIG.name}.`,
-    openGraph: {
-      title: title,
-      description: `Cari dan baca komik "${query}" bahasa Indonesia.`,
-      url: `${SITE_CONFIG.baseUrl}/search${query ? `?q=${encodeURIComponent(query)}` : ''}`,
-      siteName: SITE_CONFIG.name,
-      locale: 'id_ID',
-      type: 'website',
+    description: `Halaman pencarian komik di ${SITE_CONFIG.name}.`,
+    robots: {
+      index: false,
+      follow: true,
+      nocache: true,
+    },
+    alternates: {
+      canonical: `${SITE_CONFIG.baseUrl}/search`,
     },
   };
 }

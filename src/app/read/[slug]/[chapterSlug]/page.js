@@ -19,20 +19,56 @@ async function getChapterData(slug, chapterSlug) {
 
 // --- GENERATE METADATA ---
 export async function generateMetadata({ params }) {
-  const { slug, chapterSlug } = await params;
+  // Await params karena di Next.js terbaru params adalah Promise
+  const { slug, chapterSlug } = await params; 
   const res = await getChapterData(slug, chapterSlug);
 
+  // Jika data tidak ditemukan
   if (!res || !res.success || !res.data) {
-    return { title: 'Chapter Tidak Ditemukan - 404' };
+    return { 
+      title: 'Chapter Tidak Ditemukan - 404',
+      robots: { index: false, follow: false } 
+    };
   }
 
   const { chapter, manga } = res.data;
-  const pageTitle = `${manga.title} Chapter ${chapter.title} Bahasa Indonesia`;
   
+  // Format Judul & Deskripsi
+  const pageTitle = `Baca ${manga.title} Chapter ${chapter.title} Bahasa Indonesia`;
+  const pageDesc = `Baca ${manga.title} Chapter ${chapter.title} bahasa Indonesia terbaru dengan kualitas tinggi di ${SITE_CONFIG.name}.`;
+  const pageUrl = `${SITE_CONFIG.baseUrl}/manga/${slug}/${chapterSlug}`;
+
   return {
     title: pageTitle,
-    description: `Baca manga ${manga.title} Chapter ${chapter.title} bahasa Indonesia terbaru di ${SITE_CONFIG.name}.`,
-    robots: { index: true, follow: true }
+    description: pageDesc,
+    alternates: {
+      canonical: pageUrl,
+    },
+    openGraph: {
+      title: pageTitle,
+      description: pageDesc,
+      url: pageUrl,
+      siteName: SITE_CONFIG.name,
+      type: 'article',
+      images: [
+        {
+          url: manga.thumb,
+          width: 800,
+          height: 600,
+          alt: `${manga.title} Chapter ${chapter.title}`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: pageTitle,
+      description: pageDesc,
+      images: [manga.thumb],
+    },
+    robots: { 
+      index: true, 
+      follow: true 
+    }
   };
 }
 

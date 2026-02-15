@@ -28,16 +28,46 @@ export async function generateMetadata({ params }) {
   const res = await getMangaDetail(slug);
 
   if (!res || !res.success || !res.data) {
-    return { title: 'Manga Tidak Ditemukan - 404' };
+    return { 
+      title: 'Manga Tidak Ditemukan - 404',
+      robots: { index: false, follow: false } // Jangan index halaman 404
+    };
   }
 
   const manga = res.data.info || {};
-  const pageTitle = `${manga.title} Bahasa Indonesia`;
-  
+  const pageTitle = `Baca ${manga.title} Bahasa Indonesia`;
+  const pageDesc = `Baca ${manga.metadata?.type || 'Komik'} ${manga.title} Download ${manga.metadata?.type || 'Komik'} ${manga.title} Bahasa Indonesia.`;
+  const pageUrl = `${SITE_CONFIG.baseUrl}/manga/${slug}`;
+
   return {
     title: pageTitle,
-    description: manga.synopsis ? manga.synopsis.slice(0, 150) : `Baca manga ${manga.title} gratis.`,
-    alternates: { canonical: `${SITE_CONFIG.baseUrl}/manga/${slug}` },
+    description: pageDesc,
+    alternates: { 
+        canonical: pageUrl 
+    },
+    // Tambahkan Open Graph agar saat dishare di FB/WA/Discord muncul gambar & judul komik
+    openGraph: {
+      title: pageTitle,
+      description: pageDesc,
+      url: pageUrl,
+      siteName: SITE_CONFIG.name,
+      images: [
+        {
+          url: manga.thumb, // Menggunakan thumbnail manga
+          width: 800,
+          height: 600,
+          alt: manga.title,
+        },
+      ],
+      type: 'website',
+    },
+    // Tambahkan Twitter Card agar tampilan bagus di Twitter/X
+    twitter: {
+      card: 'summary_large_image',
+      title: pageTitle,
+      description: pageDesc,
+      images: [manga.thumb],
+    },
     robots: { index: true, follow: true }
   };
 }

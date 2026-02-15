@@ -3,7 +3,7 @@ import ExploreClient from '@/components/ExploreClient';
 import { SITE_CONFIG } from '@/lib/config';
 
 // --- FETCH DATA ---
-async function getMangaList(page, status, type, genre, q, order) { // Tambah parameter order
+async function getMangaList(page, status, type, genre, q, order) {
   try {
     const params = new URLSearchParams();
     if (page) params.set('page', page);
@@ -21,7 +21,6 @@ async function getMangaList(page, status, type, genre, q, order) { // Tambah par
   }
 }
 
-// ... (getGenres tetap sama) ...
 async function getGenres() {
     try {
       const res = await fetch(`${SITE_CONFIG.apiBaseUrl}/genres`, { cache: 'no-store' });

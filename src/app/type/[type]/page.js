@@ -20,30 +20,42 @@ async function getTypeManga(type, page) {
   }
 }
 
-// --- GENERATE METADATA (SEO & OG:URL FIX) ---
+// --- GENERATE METADATA (SEO) ---
 export async function generateMetadata({ params, searchParams }) {
+  // Await params & searchParams (Next.js 15+)
   const { type } = await params;
   const sp = await searchParams;
   const page = sp.page || 1;
-  
-  // Kapitalisasi tipe untuk judul (misal: manhwa -> Manhwa)
   const displayType = type.charAt(0).toUpperCase() + type.slice(1);
-  
-  let title = `Daftar Komik Tipe ${displayType}`;
-  if (page > 1) title += ` - Halaman ${page}`;
+  let title = `Daftar Komik Tipe ${displayType} Bahasa Indonesia`;
+  if (page > 1) {
+    title += ` - Halaman ${page}`;
+  }
+  const description = `Temukan daftar komik kategori ${displayType} terlengkap dan terbaru bahasa Indonesia. Baca dan download gratis di ${SITE_CONFIG.name}.`;
+  const canonicalUrl = `${SITE_CONFIG.baseUrl}/type/${type}${page > 1 ? `?page=${page}` : ''}`;
 
   return {
     title: title,
-    description: `Filter dan cari komik tipe ${displayType} terlengkap bahasa Indonesia.`,
+    description: description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title: title,
-      description: `Filter dan cari komik tipe ${displayType} terlengkap bahasa Indonesia.`,
-      // Menggunakan Base URL dari Config untuk konsistensi link
-      url: `${SITE_CONFIG.baseUrl}/type/${type}${page > 1 ? `?page=${page}` : ''}`,
+      description: description,
+      url: canonicalUrl,
       siteName: SITE_CONFIG.name,
-      locale: 'id_ID',
       type: 'website',
     },
+    twitter: {
+      card: 'summary',
+      title: title,
+      description: description,
+    },
+    robots: {
+      index: true,
+      follow: true,
+    }
   };
 }
 
