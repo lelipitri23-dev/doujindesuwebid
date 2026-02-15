@@ -21,7 +21,7 @@ export default function Footer() {
                     </span>
                 </Link>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                    UPDATE Doujinshi setiap hari hanya di Doujindesu. Doujinshi disini bermuatan konten dewasa, jadi sesuaikanlah dengan bijak antara bacaan anda dengan umur anda. Semua doujin disini hanya fiktif belaka.
+                    UPDATE Doujinshi setiap hari hanya di {SITE_CONFIG.name}. Doujinshi disini bermuatan konten dewasa, jadi sesuaikanlah dengan bijak antara bacaan anda dengan umur anda. Semua doujin disini hanya fiktif belaka.
                 </p>
             </div>
 
