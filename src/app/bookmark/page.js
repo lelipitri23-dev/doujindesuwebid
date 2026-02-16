@@ -4,7 +4,7 @@ import { SITE_CONFIG } from '@/lib/config';
 
 // --- SEO CONFIGURATION ---
 export const metadata = {
-  title: `Library Saya | ${SITE_CONFIG.name}`,
+  title: `Library Saya`,
   description: `Akses cepat daftar bacaan manga, manhwa, dan komik favorit yang telah Anda simpan di ${SITE_CONFIG.name}. Lanjutkan membaca chapter terakhir dengan mudah.`,
   robots: {
     index: false, 
