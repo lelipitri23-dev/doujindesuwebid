@@ -4,57 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { 
   ArrowLeft, Home, Settings, Play, Pause, List, 
-  ChevronRight, X, CheckSquare, Square, ChevronDown,
-  Loader2 
+  ChevronRight, X, CheckSquare, Square, ChevronDown 
 } from 'lucide-react';
 
-// === 1. KOMPONEN KHUSUS GAMBAR (DIGABUNG & DIKELUARKAN DARI FUNGSI UTAMA) ===
-function MangaPage({ src, index }) {
-  const [isLoading, setIsLoading] = useState(true);
-
-  return (
-    <div className="relative w-full min-h-[40vh] bg-[#0a0a0a] flex items-center justify-center">
-      {/* Loading Spinner */}
-      {isLoading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 text-gray-500">
-           <Loader2 className="animate-spin text-primary w-10 h-10 mb-2" />
-           <span className="text-xs font-mono">Loading Page {index + 1}...</span>
-        </div>
-      )}
-      
-      <img 
-        src={src} 
-        alt={`Page ${index + 1}`} 
-        onLoad={() => setIsLoading(false)}
-        
-        // --- FITUR SECURITY (Anti Save/Copy) ---
-        onContextMenu={(e) => {
-            e.preventDefault(); 
-            return false;
-        }}
-        draggable="false"
-        
-        // --- STYLING (Gapless & User Select None) ---
-        className={`w-full h-auto block object-contain select-none touch-none transition-opacity duration-500 ${
-            isLoading ? 'opacity-0' : 'opacity-100'
-        }`}
-        
-        // --- KHUSUS IOS ---
-        style={{ 
-            WebkitTouchCallout: 'none',
-            WebkitUserSelect: 'none',
-            MozUserSelect: 'none',
-            msUserSelect: 'none',
-            userSelect: 'none'
-        }}
-        
-        loading="lazy" 
-      />
-    </div>
-  );
-}
-
-// === 2. KOMPONEN UTAMA READER ===
 export default function ReaderViewer({ chapter, manga, prevChapter, nextChapter, mangaSlug }) {
   // --- STATES UI ---
   const [showUI, setShowUI] = useState(true);
@@ -67,17 +19,21 @@ export default function ReaderViewer({ chapter, manga, prevChapter, nextChapter,
   const [scrollSpeed, setScrollSpeed] = useState(1);
   const scrollInterval = useRef(null);
 
-  // Initial Load
+  // 1. Initial Load
   useEffect(() => {
-    const isHidden = localStorage.getItem('reader_notice_hidden');
-    if (!isHidden) {
-      setShowNotice(true);
+    // Cek apakah notifikasi sudah pernah ditutup selamanya
+    if (typeof window !== 'undefined') {
+        const isHidden = localStorage.getItem('reader_notice_hidden');
+        if (!isHidden) {
+            setShowNotice(true);
+        }
     }
+    // Sembunyikan UI otomatis setelah 3 detik
     const timer = setTimeout(() => setShowUI(false), 3000);
     return () => clearTimeout(timer);
   }, []);
 
-  // Logic Auto Scroll
+  // 2. Logic Auto Scroll
   useEffect(() => {
     if (isAutoScrolling) {
       if (scrollInterval.current) clearInterval(scrollInterval.current);
@@ -86,6 +42,7 @@ export default function ReaderViewer({ chapter, manga, prevChapter, nextChapter,
       const delay = baseDelay / scrollSpeed;
 
       scrollInterval.current = setInterval(() => {
+        // Stop jika sudah sampai bawah
         if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight) {
             setIsAutoScrolling(false);
             clearInterval(scrollInterval.current);
@@ -113,12 +70,11 @@ export default function ReaderViewer({ chapter, manga, prevChapter, nextChapter,
     if (!isAutoScrolling) setShowUI(false);
   };
 
-  // === 3. GLOBAL LOADING STATE (Jika Data Belum Ada) ===
+  // Jika data belum ada (Loading Awal)
   if (!chapter || !chapter.images) {
       return (
-        <div className="min-h-screen bg-[#111] flex flex-col items-center justify-center text-white">
-            <Loader2 className="animate-spin text-primary w-12 h-12 mb-4" />
-            <p className="animate-pulse">Memuat Chapter...</p>
+        <div className="min-h-screen bg-[#111] flex items-center justify-center text-white">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
         </div>
       );
   }
@@ -153,12 +109,20 @@ export default function ReaderViewer({ chapter, manga, prevChapter, nextChapter,
         onClick={() => setShowUI(!showUI)}
         className="min-h-screen flex flex-col items-center pb-32 pt-0 md:pt-16 cursor-pointer bg-[#111]"
       >
+        {/* Spacer Mobile */}
         <div className={`w-full transition-all duration-300 ${showUI ? 'h-16' : 'h-0'} md:hidden`}></div>
 
-        {/* CONTAINER GAMBAR */}
+        {/* Container Gambar (Flex Column agar rapat) */}
         <div className="w-full max-w-3xl flex flex-col">
             {chapter.images.map((imgUrl, index) => (
-              <MangaPage key={index} src={imgUrl} index={index} />
+              <img 
+                key={index} 
+                src={imgUrl} 
+                alt={`Page ${index + 1}`} 
+                // Style dasar: Block & Object Contain (Tanpa Spinner, Tanpa Anti Klik Kanan)
+                className="w-full h-auto block object-contain" 
+                loading="lazy" 
+              />
             ))}
         </div>
 
