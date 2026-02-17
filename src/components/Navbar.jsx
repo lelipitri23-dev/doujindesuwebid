@@ -221,6 +221,27 @@ export default function Navbar() {
       )}
 
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+
+      {/* Iklan Header - Dioptimasi untuk Tailwind & Next.js */}
+      <div className="w-full flex justify-center py-4 bg-background"> 
+        <div className="relative overflow-hidden rounded-md shadow-sm">
+          <a 
+            title="Subokep" 
+            href="https://subokep.online/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="block"
+          >
+            <img 
+              src="https://blogger.googleusercontent.com/img/a/AVvXsEg4A-vTu9eqeg2K7fgxMFI5JKyrIhgHZIXhfIOKtgds0jlavOGJYcQNljJTHjy5LVzlqrq96LrY1asb5HWyPLTguYMu05Q6smGF7dLz5m7irhXbEe9oG_SFHIjS0y370JdCFC4P8E_cujz6LO9TbmezylqTDDYi1jBQRGIT-nGaqrkt6LWLRI0Lc_KDaYq6" 
+              alt="Promosi Subokep" 
+              width={720} // Sesuaikan dengan ukuran asli gambar agar tidak pecah
+              height={90}
+              className="max-w-full h-auto border-none" 
+            />
+          </a>
+        </div>
+      </div>
     </>
   );
 }
