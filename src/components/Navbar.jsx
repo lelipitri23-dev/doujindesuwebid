@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 // Tambahkan useSearchParams di import
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Search, Bookmark, Menu, X, Home, Compass, Layers, ChevronDown, User, LogIn } from 'lucide-react';
+import { Search, Bookmark, X, Home, Compass, Layers, ChevronDown, User, LogIn } from 'lucide-react';
 import { SITE_CONFIG } from '@/lib/config';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';

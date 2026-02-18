@@ -4,7 +4,8 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: 'cdn-images.doujindesu.fun',
+        pathname: '/covers/**',
       },
       {
         protocol: 'http',

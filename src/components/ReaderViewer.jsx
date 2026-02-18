@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { 
   ArrowLeft, Home, Settings, Play, Pause, List, 
-  ChevronRight, X, CheckSquare, Square, ChevronDown 
+  ChevronRight, X, CheckSquare, Square, ChevronDown, Loader2 
 } from 'lucide-react';
 
 export default function ReaderViewer({ chapter, manga, prevChapter, nextChapter, mangaSlug }) {
@@ -19,7 +19,10 @@ export default function ReaderViewer({ chapter, manga, prevChapter, nextChapter,
   const [scrollSpeed, setScrollSpeed] = useState(1);
   const scrollInterval = useRef(null);
 
-  // 1. Initial Load
+  // --- STATE LOADING GAMBAR ---
+  const [imageLoadingStates, setImageLoadingStates] = useState({});
+
+  // 1. Initial Load UI & Notice
   useEffect(() => {
     // Cek apakah notifikasi sudah pernah ditutup selamanya
     if (typeof window !== 'undefined') {
@@ -33,7 +36,19 @@ export default function ReaderViewer({ chapter, manga, prevChapter, nextChapter,
     return () => clearTimeout(timer);
   }, []);
 
-  // 2. Logic Auto Scroll
+  // 2. Initial Load State Gambar
+  useEffect(() => {
+    // Inisialisasi semua gambar sebagai "sedang loading" (true) saat komponen dimuat
+    if (chapter && chapter.images) {
+        const initialStates = {};
+        chapter.images.forEach((_, index) => {
+            initialStates[index] = true;
+        });
+        setImageLoadingStates(initialStates);
+    }
+  }, [chapter]);
+
+  // 3. Logic Auto Scroll
   useEffect(() => {
     if (isAutoScrolling) {
       if (scrollInterval.current) clearInterval(scrollInterval.current);
@@ -70,11 +85,16 @@ export default function ReaderViewer({ chapter, manga, prevChapter, nextChapter,
     if (!isAutoScrolling) setShowUI(false);
   };
 
+  // 4. Handler Gambar Selesai Dimuat / Error
+  const handleImageLoad = (index) => {
+      setImageLoadingStates(prev => ({ ...prev, [index]: false }));
+  };
+
   // Jika data belum ada (Loading Awal)
   if (!chapter || !chapter.images) {
       return (
         <div className="min-h-screen bg-[#111] flex items-center justify-center text-white">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
+            <Loader2 className="animate-spin text-primary h-12 w-12" />
         </div>
       );
   }
@@ -115,14 +135,25 @@ export default function ReaderViewer({ chapter, manga, prevChapter, nextChapter,
         {/* Container Gambar (Flex Column agar rapat) */}
         <div className="w-full max-w-3xl flex flex-col">
             {chapter.images.map((imgUrl, index) => (
-              <img 
-                key={index} 
-                src={imgUrl} 
-                alt={`Page ${index + 1}`} 
-                // Style dasar: Block & Object Contain (Tanpa Spinner, Tanpa Anti Klik Kanan)
-                className="w-full h-auto block object-contain" 
-                loading="lazy" 
-              />
+              <div key={index} className="relative w-full min-h-[300px] bg-[#1a1a1a] flex items-center justify-center">
+                  
+                  {/* SPINNER INDIKATOR LOADING */}
+                  {imageLoadingStates[index] !== false && (
+                      <div className="absolute inset-0 flex items-center justify-center z-10">
+                          <Loader2 className="animate-spin text-primary h-10 w-10" />
+                      </div>
+                  )}
+
+                  {/* GAMBAR KOMIK */}
+                  <img 
+                    src={imgUrl} 
+                    alt={`${manga.title} - Page ${index + 1}`}
+                    className={`w-full h-auto block object-contain transition-opacity duration-300 ${imageLoadingStates[index] !== false ? 'opacity-0' : 'opacity-100'}`} 
+                    loading="lazy" 
+                    onLoad={() => handleImageLoad(index)}
+                    onError={() => handleImageLoad(index)} // Tetap hilangkan spinner jika gambar gagal dimuat
+                  />
+              </div>
             ))}
         </div>
 

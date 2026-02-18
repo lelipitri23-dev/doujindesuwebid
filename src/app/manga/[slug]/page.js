@@ -38,10 +38,12 @@ export async function generateMetadata({ params }) {
     const pageTitle = `Baca ${manga.metadata?.type || 'Komik'} ${manga.title} Bahasa Indonesia`;
     const pageDesc = `Baca ${manga.metadata?.type || 'Komik'} ${manga.title} Download ${manga.metadata?.type || 'Komik'} ${manga.title} Bahasa Indonesia.`;
     const pageUrl = `${SITE_CONFIG.baseUrl}/manga/${slug}`;
+    const keywords = [manga.title, manga.alternativeTitle, manga.metadata?.author, manga.metadata?.artist, ...(manga.tags || [])].filter(Boolean).join(', ');
 
     return {
         title: pageTitle,
         description: pageDesc,
+        keywords: keywords,
         alternates: {
             canonical: pageUrl
         },
@@ -146,7 +148,7 @@ export default async function MangaDetail({ params }) {
                         <Image
                             src={manga.thumb}
                             fill
-                            className="object-cover blur-[80px] opacity-20"
+                            className="object-cover blur-[-10px] opacity-20"
                             alt="bg"
                             unoptimized
                         />

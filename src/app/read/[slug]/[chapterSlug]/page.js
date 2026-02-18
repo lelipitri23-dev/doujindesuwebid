@@ -36,11 +36,13 @@ export async function generateMetadata({ params }) {
   // Format Judul & Deskripsi
   const pageTitle = `Baca ${manga.title} Chapter ${chapter.title} Bahasa Indonesia`;
   const pageDesc = `Baca ${manga.title} Chapter ${chapter.title} bahasa Indonesia terbaru dengan kualitas tinggi di ${SITE_CONFIG.name}.`;
-  const pageUrl = `${SITE_CONFIG.baseUrl}/manga/${slug}/${chapterSlug}`;
+  const pageUrl = `${SITE_CONFIG.baseUrl}/read/${slug}/${chapterSlug}`;
+  const keywords = [manga.title, `Chapter ${chapter.title}`, manga.metadata?.type, SITE_CONFIG.name].filter(Boolean).join(', ');
 
   return {
     title: pageTitle,
     description: pageDesc,
+    keywords: keywords,
     alternates: {
       canonical: pageUrl,
     },

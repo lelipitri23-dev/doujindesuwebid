@@ -2,18 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Eye, Clock, Search, List, History } from 'lucide-react';
+import { Clock, Search, List, History, Download } from 'lucide-react';
 
 export default function ChapterList({ chapters = [], slug }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredChapters, setFilteredChapters] = useState(chapters);
-  const [lastRead, setLastRead] = useState(null); // Menyimpan slug chapter terakhir
+  const [lastRead, setLastRead] = useState(null);
 
-  // 1. Load History dari LocalStorage saat pertama kali dibuka
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const history = JSON.parse(localStorage.getItem('reading_history') || '{}');
-      // Ambil chapter terakhir untuk manga ini (berdasarkan slug manga)
       if (history[slug]) {
         setLastRead(history[slug]);
       }
@@ -21,16 +19,13 @@ export default function ChapterList({ chapters = [], slug }) {
     setFilteredChapters(chapters);
   }, [slug, chapters]);
 
-  // 2. Handle Pencarian (Realtime)
   const handleSearch = (e) => {
     const query = e.target.value.toLowerCase();
     setSearchQuery(query);
 
     const filtered = chapters.filter((chapter) => {
-      // Cari berdasarkan Index (angka) atau Judul
       const titleMatch = chapter.title?.toLowerCase().includes(query);
-      const indexMatch = chapter.chapter_index?.toString().includes(query); // Asumsi chapter_index ada
-      // Fallback jika chapter_index tidak ada, cari di title
+      const indexMatch = chapter.chapter_index?.toString().includes(query);
       const numberInTitle = chapter.title?.toLowerCase().includes(`chapter ${query}`);
       
       return titleMatch || indexMatch || numberInTitle;
@@ -39,13 +34,28 @@ export default function ChapterList({ chapters = [], slug }) {
     setFilteredChapters(filtered);
   };
 
-  // 3. Simpan History saat chapter diklik
   const handleChapterClick = (chapterSlug) => {
     const history = JSON.parse(localStorage.getItem('reading_history') || '{}');
-    history[slug] = chapterSlug; // Simpan: manga_slug -> chapter_slug
+    history[slug] = chapterSlug;
     localStorage.setItem('reading_history', JSON.stringify(history));
     setLastRead(chapterSlug);
   };
+
+  const handleDownload = (e, chapter) => {
+    e.preventDefault(); 
+    e.stopPropagation(); 
+    alert(`Fitur download untuk Chapter ${chapter.chapter_index || chapter.title} masih dalam tahap pengembangan.`);
+  };
+
+  const latestChapter = chapters.length > 0 
+    ? chapters.reduce((prev, current) => {
+        const prevIndex = Number(prev.chapter_index || prev.title?.replace(/\D/g, '') || 0);
+        const currentIndex = Number(current.chapter_index || current.title?.replace(/\D/g, '') || 0);
+        return (prevIndex > currentIndex) ? prev : current;
+      }, chapters[0])
+    : null;
+  
+  const latestChapterSlug = latestChapter?.slug;
 
   if (!chapters || chapters.length === 0) {
     return <div className="p-4 text-center text-gray-500">Belum ada chapter.</div>;
@@ -54,7 +64,7 @@ export default function ChapterList({ chapters = [], slug }) {
   return (
     <div className="space-y-4">
       
-      {/* === SEARCH BAR (Dipindah ke sini agar berfungsi) === */}
+      {/* === SEARCH BAR === */}
       <div className="relative">
          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
              <Search size={18} />
@@ -81,45 +91,79 @@ export default function ChapterList({ chapters = [], slug }) {
         <div className="max-h-[500px] overflow-y-auto custom-scrollbar">
           {filteredChapters.length > 0 ? (
             filteredChapters.map((chapter) => {
-              // Cek apakah ini chapter terakhir dibaca
               const isLastRead = lastRead === chapter.slug;
+              const isNewest = chapter.slug === latestChapterSlug;
+
+              // 1. Ekstrak hanya angka untuk Badge
+              const chapterNumber = chapter.chapter_index || chapter.title?.replace(/\D/g, '') || '';
+              
+              // 2. Format Judul agar otomatis menambahkan kata "Chapter" jika belum ada
+              let displayTitle = chapter.title || `Chapter ${chapterNumber}`;
+              if (!displayTitle.toLowerCase().includes('chapter')) {
+                  if (/^\d+/.test(displayTitle.trim())) {
+                      displayTitle = `Chapter ${displayTitle.trim()}`; // Misal "68" jadi "Chapter 68"
+                  } else if (chapterNumber) {
+                      displayTitle = `Chapter ${chapterNumber} - ${displayTitle.trim()}`; // Misal judulnya teks lain
+                  }
+              }
 
               return (
                 <Link 
                   key={chapter._id} 
                   href={`/read/${slug}/${chapter.slug}`}
                   onClick={() => handleChapterClick(chapter.slug)}
-                  className={`flex items-center justify-between p-3 border-b border-gray-800/50 last:border-0 transition group relative ${
+                  className={`flex items-center justify-between p-3 border-b border-gray-800/50 last:border-0 transition group ${
                     isLastRead 
-                        ? 'bg-primary/10 hover:bg-primary/20 border-l-4 border-l-primary' // Style khusus history
+                        ? 'bg-[#8b5cf6]/10 hover:bg-[#8b5cf6]/20 border-l-4 border-l-[#8b5cf6]' 
                         : 'hover:bg-gray-800 border-l-4 border-l-transparent'
                   }`}
                 >
                   <div className="flex items-center gap-3">
+                    
+                    {/* ===== BADGE KIRI (Ch.68) ===== */}
                     <span className={`px-3 py-1 rounded text-xs font-bold transition ${
                         isLastRead 
-                        ? 'bg-primary text-white' 
+                        ? 'bg-[#8b5cf6] text-white' 
                         : 'bg-gray-800 text-gray-400 group-hover:bg-gray-700 group-hover:text-white'
                     }`}>
-                      Ch. {chapter.chapter_index || chapter.title.replace(/\D/g,'')}
+                      Ch.{chapterNumber}
                     </span>
                     
                     <div className="flex flex-col">
-                        <span className={`text-sm font-medium line-clamp-1 ${isLastRead ? 'text-primary' : 'text-gray-300 group-hover:text-white'}`}>
-                            {chapter.title || `Chapter ${chapter.chapter_index}`}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            {/* ===== JUDUL UTAMA (Chapter 68) ===== */}
+                            <span className={`text-sm font-medium line-clamp-1 ${isLastRead ? 'text-[#8b5cf6]' : 'text-gray-300 group-hover:text-white'}`}>
+                                {displayTitle}
+                            </span>
+                            
+                            {isNewest && (
+                                <span className="bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse">
+                                    NEW
+                                </span>
+                            )}
+                        </div>
                         {isLastRead && (
-                            <span className="text-[10px] text-primary flex items-center gap-1 mt-0.5 font-bold">
+                            <span className="text-[10px] text-[#8b5cf6] flex items-center gap-1 mt-0.5 font-bold">
                                 <History size={10} /> Terakhir dibaca
                             </span>
                         )}
                     </div>
                   </div>
 
-                  <div className="text-[10px] text-gray-500 flex flex-col items-end gap-1">
-                     <span className="flex items-center gap-1">
-                        <Clock size={10}/> {new Date(chapter.createdAt || Date.now()).toLocaleDateString('id-ID')}
-                     </span>
+                  <div className="flex items-center gap-4">
+                    <div className="text-[10px] text-gray-500 flex flex-col items-end gap-1">
+                       <span className="flex items-center gap-1">
+                          <Clock size={10}/> {new Date(chapter.createdAt || Date.now()).toLocaleDateString('id-ID')}
+                       </span>
+                    </div>
+
+                    <button 
+                      onClick={(e) => handleDownload(e, chapter)}
+                      className="p-1.5 bg-gray-800/80 hover:bg-[#8b5cf6] hover:text-white rounded text-gray-400 transition"
+                      title="Download Chapter (Coming Soon)"
+                    >
+                      <Download size={14} />
+                    </button>
                   </div>
                 </Link>
               );
