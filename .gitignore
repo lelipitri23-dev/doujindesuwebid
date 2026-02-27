@@ -1,0 +1,10 @@
+node_modules
+.next
+komik-app.zip
+komikverse-firebase.zip
+.env.example
+.env.local
+firestore.rules
+komik-app-updated.zip
+Doujindesu_Next_Js_Full.zip
+Doujindesu Next Js.zip
