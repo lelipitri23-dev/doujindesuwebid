@@ -21,7 +21,7 @@ export async function generateMetadata({ params }) {
   const synopsis = manga.synopsis || '';
 
   return {
-    title: manga.title,
+    title: `Baca ${type || 'Komik'} ${manga.title} Bahasa Indonesia`,
     description: `Baca ${manga.title} - ${type || 'Komik'} ${status}. ${synopsis?.slice(0, 120) || ''}`,
     openGraph: {
       title: manga.title,
@@ -264,7 +264,7 @@ export default async function MangaDetailPage({ params }) {
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-text-primary group-hover:text-accent-red transition-colors truncate">
-                      {ch.title}
+                      Chapter {ch.title}
                     </p>
                     {ch.createdAt && (
                       <p className="text-[10px] text-text-muted mt-0.5">{formatDate(ch.createdAt)}</p>

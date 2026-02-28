@@ -44,7 +44,7 @@ export async function generateMetadata({ params }) {
 
   const { manga, chapter } = data;
   const cleanTitle   = cleanChapterTitle(manga.title, chapter.title);
-  const title        = `${manga.title} Chapter ${cleanTitle}`;
+  const title        = `Baca ${manga.title} Chapter ${cleanTitle} Bahasa Indonesia`;
   const description  = `Baca ${title} bahasa Indonesia gratis di ${SITE_NAME}`;
   const canonicalUrl = `${SITE_URL}/read/${slug}/${chapterSlug}`;
   const coverImage   = manga.coverImage || `${SITE_URL}/og-image.png`;
