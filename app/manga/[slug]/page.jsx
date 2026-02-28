@@ -100,7 +100,7 @@ export default async function MangaDetailPage({ params }) {
                 alt={`${manga.title} cover`}
                 fill
                 className="object-cover scale-110 opacity-20"
-                style={{ filter: 'blur(16px)' }}
+                style={{ filter: 'blur(-0px)' }}
                 unoptimized
                 priority
               />
@@ -137,17 +137,17 @@ export default async function MangaDetailPage({ params }) {
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {type && (
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${type?.toLowerCase() === 'manhwa' ? 'bg-purple-900/50 border-purple-700 text-purple-300'
-                      : type?.toLowerCase() === 'manhua' ? 'bg-orange-900/50 border-orange-700 text-orange-300'
-                        : type?.toLowerCase() === 'doujinshi' ? 'bg-pink-900/50 border-pink-700 text-pink-300'
-                          : 'bg-blue-900/50 border-blue-700 text-blue-300'
+                    : type?.toLowerCase() === 'manhua' ? 'bg-orange-900/50 border-orange-700 text-orange-300'
+                      : type?.toLowerCase() === 'doujinshi' ? 'bg-pink-900/50 border-pink-700 text-pink-300'
+                        : 'bg-blue-900/50 border-blue-700 text-blue-300'
                     }`}>
                     {type}
                   </span>
                 )}
                 {status && (
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${status?.toLowerCase() === 'ongoing'
-                      ? 'bg-green-900/50 border-green-700 text-green-300'
-                      : 'bg-gray-800 border-gray-600 text-gray-400'
+                    ? 'bg-green-900/50 border-green-700 text-green-300'
+                    : 'bg-gray-800 border-gray-600 text-gray-400'
                     }`}>
                     {status}
                   </span>

@@ -35,7 +35,7 @@ export default function TrendingSlider({ trending = [] }) {
             alt={item?.title || ''}
             fill
             className="object-cover scale-110 opacity-30"
-            style={{ filter: 'blur(20px)' }}
+            style={{ filter: 'blur(-0px)' }}
             unoptimized
             priority
           />
@@ -69,7 +69,7 @@ export default function TrendingSlider({ trending = [] }) {
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs font-bold text-accent-red uppercase tracking-widest font-display flex items-center gap-1">
                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 flex-shrink-0">
-                  <path d="M12 2C9 7 6 9.5 6 13a6 6 0 0012 0c0-3.5-3-6-6-11zm0 18a4 4 0 01-4-4c0-2.5 2-4.5 4-8 2 3.5 4 5.5 4 8a4 4 0 01-4 4z"/>
+                  <path d="M12 2C9 7 6 9.5 6 13a6 6 0 0012 0c0-3.5-3-6-6-11zm0 18a4 4 0 01-4-4c0-2.5 2-4.5 4-8 2 3.5 4 5.5 4 8a4 4 0 01-4 4z" />
                 </svg>
                 Trending #{current + 1}
               </span>
@@ -86,11 +86,10 @@ export default function TrendingSlider({ trending = [] }) {
                 </span>
               )}
               {status && (
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                  status?.toLowerCase() === 'publishing' || status?.toLowerCase() === 'ongoing'
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${status?.toLowerCase() === 'publishing' || status?.toLowerCase() === 'ongoing'
                     ? 'bg-green-900/60 text-green-400 border border-green-800'
                     : 'bg-gray-800 text-gray-400 border border-gray-700'
-                }`}>
+                  }`}>
                   {status?.toLowerCase() === 'publishing' || status?.toLowerCase() === 'ongoing' ? 'ONG' : 'END'}
                 </span>
               )}
@@ -113,9 +112,8 @@ export default function TrendingSlider({ trending = [] }) {
           <button
             key={i}
             onClick={() => setCurrent(i)}
-            className={`rounded-full transition-all duration-300 ${
-              i === current ? 'bg-accent-red w-4 h-1.5' : 'bg-border w-1.5 h-1.5'
-            }`}
+            className={`rounded-full transition-all duration-300 ${i === current ? 'bg-accent-red w-4 h-1.5' : 'bg-border w-1.5 h-1.5'
+              }`}
           />
         ))}
       </div>
