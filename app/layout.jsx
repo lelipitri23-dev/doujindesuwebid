@@ -91,7 +91,7 @@ export default function RootLayout({ children }) {
       <body className="bg-bg-primary text-text-primary font-body antialiased">
         <Script
           src="https://analytics.ahrefs.com/analytics.js"
-          data-key="YGTKC1Bu44RqxJ9W6fLh1Q"
+          data-key="/p2v7q/Eul3A9xUony7OWQ"
           strategy="afterInteractive"
           async
         />
