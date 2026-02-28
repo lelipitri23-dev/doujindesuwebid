@@ -112,19 +112,19 @@ export default function RootLayout({ children }) {
           }}
         />
         
-        {/* Komponen AdScript - pastikan komponen ini juga merender di dalam body */}
-        <AdScript />
-        
         <AuthProvider>
+          {/* AdScript harus di dalam AuthProvider agar bisa cek status user */}
+          <AdScript />
+
           <Suspense fallback={null}>
             <AnalyticsProvider>
               {children}
             </AnalyticsProvider>
           </Suspense>
+
+          {/* Sticky bottom ad — harus di dalam AuthProvider agar tidak tampil untuk admin/premium */}
+          <AdBanner slot="STICKY_BOTTOM" sticky />
         </AuthProvider>
-        
-        {/* Sticky bottom ad — muncul di semua halaman */}
-        <AdBanner slot="STICKY_BOTTOM" sticky />
       </body>
     </html>
   );
