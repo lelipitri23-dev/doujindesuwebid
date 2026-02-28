@@ -6,9 +6,9 @@ import AnalyticsProvider from '@/components/AnalyticsProvider';
 import AdScript from '@/components/AdScript';
 import AdBanner from '@/components/AdBanner';
 
-const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME || 'Doujindesu';
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://doujindesu.web.id';
-const SITE_DESC = 'Baca komik manga, manhwa, dan manhua terlengkap secara gratis. Update chapter terbaru setiap hari!';
+const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME || '{SITE_NAME}';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://';
+const SITE_DESC = `UPDATE Doujinshi setiap hari hanya di ${SITE_NAME}. Doujinshi disini bermuatan konten dewasa, jadi sesuaikanlah dengan bijak antara bacaan anda dengan umur anda. Semua doujin disini hanya fiktif belaka.`;
 
 export const metadata = {
   metadataBase: new URL(SITE_URL),
@@ -17,7 +17,7 @@ export const metadata = {
     template: `%s - ${SITE_NAME}`,
   },
   description: SITE_DESC,
-  keywords: ['doujindesu', 'manga doujindesu', 'baca komik', 'baca manga gratis', 'komik online'],
+  keywords: ['${SITE_NAME} 02', 'manga ${SITE_NAME}', 'kiriyuu manhwa', 'kiriyuu manhua', 'baca komik', 'baca manga gratis', 'komik online'],
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
   publisher: SITE_NAME,
@@ -68,7 +68,8 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content={SITE_NAME} />
-        <script src="https://analytics.ahrefs.com/analytics.js" data-key="YGTKC1Bu44RqxJ9W6fLh1Q" async></script>
+        
+        {/* Pindahkan script JSON-LD ke sini (ini aman di head) */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -87,13 +88,19 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      
-      {/* HAPUS AdScript dari sini dan pindahkan ke dalam body -> AuthProvider */}
-      <Script
-        id="histats"
-        strategy="afterInteractive"
-        dangerouslySetInnerHTML={{
-          __html: `var _Hasync= _Hasync|| [];
+      <body className="bg-bg-primary text-text-primary font-body antialiased">
+        <Script
+          src="https://analytics.ahrefs.com/analytics.js"
+          data-key="YGTKC1Bu44RqxJ9W6fLh1Q"
+          strategy="afterInteractive"
+          async
+        />
+        
+        <Script
+          id="histats"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `var _Hasync= _Hasync|| [];
         _Hasync.push(['Histats.start', '1,5009102,4,0,0,0,00010000']);
         _Hasync.push(['Histats.fasi', '1']);
         _Hasync.push(['Histats.track_hits', '']);
@@ -102,22 +109,22 @@ export default function RootLayout({ children }) {
         hs.src = ('//s10.histats.com/js15_as.js');
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(hs);
         })();`,
-        }}
-      />
-      
-      <body className="bg-bg-primary text-text-primary font-body antialiased">
+          }}
+        />
+        
+        {/* Komponen AdScript - pastikan komponen ini juga merender di dalam body */}
+        <AdScript />
+        
         <AuthProvider>
-          {/* SEMUA KOMPONEN YANG BUTUH DATA LOGIN HARUS ADA DI DALAM SINI */}
-          <AdScript />
-          
           <Suspense fallback={null}>
             <AnalyticsProvider>
               {children}
             </AnalyticsProvider>
           </Suspense>
-
-          <AdBanner slot="STICKY_BOTTOM" sticky />
         </AuthProvider>
+        
+        {/* Sticky bottom ad — muncul di semua halaman */}
+        <AdBanner slot="STICKY_BOTTOM" sticky />
       </body>
     </html>
   );

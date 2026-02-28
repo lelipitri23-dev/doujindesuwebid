@@ -14,36 +14,37 @@ export default function AdBanner({ slot, className = '', sticky = false }) {
   const slotId = ADS_CONFIG.ADSENSE?.SLOTS?.[slot] || '';
   const customHtml = ADS_CONFIG.CUSTOM?.SLOTS?.[slot] || '';
 
-  // ─── LOGIKA TAMPIL IKLAN ──────────────────────────────────
-  // Iklan TIDAK tampil jika:
-  //   1. Fitur iklan dimatikan (ENABLED: false)
-  //   2. Masih loading status user (cegah flicker)
-  //   3. User adalah Admin    → user.isAdmin  === true
-  //   4. User adalah Premium  → user.isPremium === true
-  //
-  // Iklan TAMPIL jika:
-  //   - Guest (belum login)   → user === null
-  //   - Member biasa          → user ada, tapi bukan admin & bukan premium
-  // ─────────────────────────────────────────────────────────
   const shouldShowAds = (() => {
-    if (!ADS_CONFIG.ENABLED) return false; // iklan dimatikan
-    if (loading) return false; // tunggu status user
-    if (!user) return true;  // guest → tampilkan
-    if (user.isAdmin || user.isPremium) return false; // admin/premium → sembunyikan
-    return true;                                   // member biasa → tampilkan
+    if (!ADS_CONFIG.ENABLED) return false;
+    if (loading) return false;
+    if (!user) return true;
+    if (user.isAdmin || user.isPremium) return false;
+    return true;
   })();
 
   useEffect(() => {
     if (!shouldShowAds || !isAdSense || pushed.current) return;
-    try {
-      (window.adsbygoogle = window.adsbygoogle || []).push({});
-      pushed.current = true;
-    } catch (_) { }
+    
+    // Delay push adsbygoogle untuk memastikan script sudah load
+    const timer = setTimeout(() => {
+      try {
+        if (window.adsbygoogle) {
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+          pushed.current = true;
+        }
+      } catch (_) {}
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [shouldShowAds, isAdSense]);
 
   if (!shouldShowAds) return null;
-  if (isAdSense && !slotId) return null;
+  
+  // Untuk custom network, pastikan ada HTML
   if (!isAdSense && !customHtml) return null;
+  
+  // Untuk adsense, pastikan ada slotId
+  if (isAdSense && !slotId) return null;
 
   const stickyClass = sticky
     ? 'fixed bottom-0 left-0 right-0 z-50 flex justify-center bg-bg-primary/80 backdrop-blur-sm border-t border-border py-1'
@@ -65,6 +66,7 @@ export default function AdBanner({ slot, className = '', sticky = false }) {
     );
   }
 
+  // Untuk custom HTML banner (tanpa script)
   return (
     <div
       className={`ad-banner overflow-hidden text-center ${stickyClass} ${className}`}

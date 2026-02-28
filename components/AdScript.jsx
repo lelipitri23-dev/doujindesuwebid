@@ -7,28 +7,19 @@ import { useAuth } from '@/context/AuthContext';
 export default function AdScript() {
   const { user, loading } = useAuth();
 
-  // ─── LOGIKA MUAT SCRIPT IKLAN ─────────────────────────────
-  // Script TIDAK dimuat jika:
-  //   1. Fitur iklan dimatikan
-  //   2. Masih loading status user
-  //   3. User adalah Admin atau Premium
-  //
-  // Script DIMUAT jika:
-  //   - Guest (belum login) → tampilkan iklan
-  //   - Member biasa        → tampilkan iklan
-  // ─────────────────────────────────────────────────────────
   const shouldLoadScript = (() => {
     if (!ADS_CONFIG.ENABLED) return false;
     if (loading) return false;
-    if (!user) return true;  // guest
-    if (user.isAdmin || user.isPremium) return false; // admin/premium
-    return true;                                      // member biasa
+    if (!user) return true;
+    if (user.isAdmin || user.isPremium) return false;
+    return true;
   })();
 
   if (!shouldLoadScript) return null;
 
   const network = ADS_CONFIG.NETWORK;
 
+  // Adsense
   if (network === 'adsense' && ADS_CONFIG.ADSENSE?.CLIENT_ID) {
     return (
       <Script
@@ -41,13 +32,33 @@ export default function AdScript() {
     );
   }
 
-  if ((network === 'adsterra' || network === 'custom') && ADS_CONFIG.CUSTOM?.GLOBAL_SCRIPT) {
-    return (
-      <div
-        style={{ display: 'none' }}
-        dangerouslySetInnerHTML={{ __html: ADS_CONFIG.CUSTOM.GLOBAL_SCRIPT }}
-      />
-    );
+  // Custom network dengan script eksternal
+  if (network === 'adsterra' || network === 'custom') {
+    const globalScript = ADS_CONFIG.CUSTOM?.SCRIPT_GLOBAL;
+    
+    if (globalScript?.SRC) {
+      // Untuk script eksternal
+      return (
+        <Script
+          id="custom-ad-script"
+          src={globalScript.SRC}
+          {...globalScript.DATA_ATTRIBUTES}
+          strategy="afterInteractive"
+          async
+        />
+      );
+    }
+    
+    if (ADS_CONFIG.CUSTOM?.INLINE_SCRIPT) {
+      // Untuk script inline
+      return (
+        <Script
+          id="custom-inline-script"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{ __html: ADS_CONFIG.CUSTOM.INLINE_SCRIPT }}
+        />
+      );
+    }
   }
 
   return null;
