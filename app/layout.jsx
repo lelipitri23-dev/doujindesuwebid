@@ -68,7 +68,7 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content={SITE_NAME} />
-        
+
         {/* Pindahkan script JSON-LD ke sini (ini aman di head) */}
         <script
           type="application/ld+json"
@@ -89,13 +89,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="bg-bg-primary text-text-primary font-body antialiased">
-        <Script
-          src="https://analytics.ahrefs.com/analytics.js"
-          data-key="/p2v7q/Eul3A9xUony7OWQ"
-          strategy="afterInteractive"
-          async
-        />
-        
+
         <Script
           id="histats"
           strategy="afterInteractive"
@@ -111,7 +105,12 @@ export default function RootLayout({ children }) {
         })();`,
           }}
         />
-        
+
+        <Script
+          src="https://analytics.ahrefs.com/analytics.js"
+          data-key="FZV4LVK/Nt1VZAsuzGsAvQ"
+          strategy="afterInteractive"
+        />
         <AuthProvider>
           {/* AdScript harus di dalam AuthProvider agar bisa cek status user */}
           <AdScript />
