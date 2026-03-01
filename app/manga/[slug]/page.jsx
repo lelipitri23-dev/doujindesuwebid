@@ -47,6 +47,14 @@ function formatDate(dateStr) {
   });
 }
 
+function parsePositiveInt(...values) {
+  for (const value of values) {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return 0;
+}
+
 export default async function MangaDetailPage({ params }) {
   const res = await getMangaDetail(params.slug);
   if (!res?.data?.info) notFound();
@@ -61,6 +69,28 @@ export default async function MangaDetailPage({ params }) {
   const synopsis = manga.synopsis || '';
   const rating = manga.rating || 0;
   const genres = manga.tags || manga.genres || [];
+  const ratingCount = parsePositiveInt(
+    manga.ratingCount,
+    manga.reviewCount,
+    manga.votes,
+    manga.voteCount,
+    manga.totalVotes,
+    manga.metadata?.ratingCount,
+    manga.metadata?.reviewCount,
+    manga.metadata?.votes,
+    manga.metadata?.voteCount,
+    manga.metadata?.totalVotes
+  );
+  const reviewCount = parsePositiveInt(
+    manga.reviewCount,
+    manga.ratingCount,
+    manga.reviews,
+    manga.reviewTotal,
+    manga.metadata?.reviewCount,
+    manga.metadata?.ratingCount,
+    manga.metadata?.reviews,
+    manga.metadata?.reviewTotal
+  );
 
   const firstChapter = chapters[chapters.length - 1];
   const latestChapter = chapters[0];
@@ -77,6 +107,8 @@ export default async function MangaDetailPage({ params }) {
         '@type': 'AggregateRating',
         ratingValue: rating,
         bestRating: 10,
+        ratingCount: ratingCount || 1,
+        reviewCount: reviewCount || ratingCount || 1,
       },
     }),
   };
