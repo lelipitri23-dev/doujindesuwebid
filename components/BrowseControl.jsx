@@ -8,6 +8,12 @@ import MangaListItem from './MangaListItem';
 
 const TYPES = ['', 'manga', 'manhwa', 'doujinshi'];
 const STATUSES = ['', 'Publishing', 'Finished'];
+const ORDERS = [
+  { value: 'latest', label: 'Update' },
+  { value: 'popular', label: 'Populer' },
+  { value: 'az', label: 'A-Z' },
+  { value: 'za', label: 'Z-A' },
+];
 
 export default function BrowseControl({ genres, totalItems, q, mangas, currentFilters = {} }) {
   const router = useRouter();
@@ -20,6 +26,7 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
     type: currentFilters.type || searchParams.get('type') || '',
     status: currentFilters.status || searchParams.get('status') || '',
     genre: currentFilters.genre || searchParams.get('genre') || '',
+    order: currentFilters.order || searchParams.get('order') || 'latest',
   });
 
   useEffect(() => {
@@ -27,6 +34,7 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
       type: searchParams.get('type') || '',
       status: searchParams.get('status') || '',
       genre: searchParams.get('genre') || '',
+      order: searchParams.get('order') || 'latest',
     });
   }, [searchParams]);
 
@@ -41,15 +49,21 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
     if (localFilter.type) p.set('type', localFilter.type);
     if (localFilter.status) p.set('status', localFilter.status);
     if (localFilter.genre) p.set('genre', localFilter.genre);
+    if (localFilter.order) p.set('order', localFilter.order);
     router.push(`/manga?${p.toString()}`);
     setIsFilterOpen(false);
   };
 
   const clearFilter = () => {
-    setLocalFilter({ type: '', status: '', genre: '' });
+    setLocalFilter({ type: '', status: '', genre: '', order: 'latest' });
   };
 
-  const activeFilterCount = [localFilter.type, localFilter.status, localFilter.genre].filter(Boolean).length;
+  const activeFilterCount = [
+    localFilter.type,
+    localFilter.status,
+    localFilter.genre,
+    localFilter.order && localFilter.order !== 'latest' ? localFilter.order : '',
+  ].filter(Boolean).length;
 
   const OptionButton = ({ label, isActive, onClick }) => (
     <button
@@ -156,6 +170,21 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Urutan */}
+              <div>
+                <h3 className="text-sm font-bold text-white mb-3">Urutan</h3>
+                <div className="flex flex-wrap gap-2">
+                  {ORDERS.map((o) => (
+                    <OptionButton
+                      key={o.value}
+                      label={o.label}
+                      isActive={localFilter.order === o.value}
+                      onClick={() => handleSelect('order', o.value)}
+                    />
+                  ))}
+                </div>
+              </div>
+
               {/* Tipe */}
               <div>
                 <h3 className="text-sm font-bold text-white mb-3">Tipe</h3>
@@ -207,6 +236,7 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
                   </div>
                 </div>
               )}
+
             </div>
 
             <div className="p-4 border-t border-border bg-bg-card rounded-b-2xl flex gap-3">

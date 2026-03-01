@@ -11,11 +11,16 @@ export async function generateMetadata({ searchParams }) {
   const type = searchParams?.type;
   const genre = searchParams?.genre;
   const status = searchParams?.status;
+  const order = searchParams?.order;
   let title = 'Daftar Komik';
   if (q) title = `Cari: ${q}`;
   else if (genre) title = `Genre: ${genre}`;
   else if (type) title = `${type.charAt(0).toUpperCase() + type.slice(1)} Terbaru`;
   else if (status) title = `Status: ${status}`;
+  else if (order === 'popular') title = 'Komik Populer';
+  else if (order === 'oldest') title = 'Komik Terlama';
+  else if (order === 'az') title = 'Komik A-Z';
+  else if (order === 'za') title = 'Komik Z-A';
   return {
     title,
     description: `${title} - Temukan ribuan judul manga di ${process.env.NEXT_PUBLIC_SITE_NAME}.`,
@@ -33,6 +38,7 @@ export default async function BrowsePage({ searchParams }) {
     genre:  searchParams?.genre  || '',
     type:   searchParams?.type   || '',
     status: searchParams?.status || '',
+    order:  searchParams?.order  || '',
   };
 
   // Build href helper untuk pagination
@@ -42,6 +48,7 @@ export default async function BrowsePage({ searchParams }) {
     if (params.genre)  p.set('genre',  params.genre);
     if (params.type)   p.set('type',   params.type);
     if (params.status) p.set('status', params.status);
+    if (params.order)  p.set('order',  params.order);
     if (newPage > 1)   p.set('page',   String(newPage));
     const qs = p.toString();
     return `/manga${qs ? '?' + qs : ''}`;
@@ -73,6 +80,7 @@ export default async function BrowsePage({ searchParams }) {
             type: params.type,
             status: params.status,
             genre: params.genre,
+            order: params.order,
           }}
         />
 
