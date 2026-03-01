@@ -25,7 +25,7 @@ module.exports = {
           secondary: '#94a3b8',
           muted: '#475569',
         },
-        border: '#1e2d45',
+        border: '#1a2235',
       },
       fontFamily: {
         display: ['var(--font-bebas)', 'sans-serif'],
