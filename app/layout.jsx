@@ -17,7 +17,7 @@ export const metadata = {
     template: `%s - ${SITE_NAME}`,
   },
   description: SITE_DESC,
-  keywords: ['{SITE_NAME} 02', 'manga {SITE_NAME}', 'kiriyuu manhwa', 'kiriyuu manhua', 'baca komik', 'baca manga gratis', 'komik online'],
+  keywords: [`${SITE_NAME} 02`, `manga ${SITE_NAME}`, 'kiriyuu manhwa', 'kiriyuu manhua', 'baca komik', 'baca manga gratis', 'komik online'],
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
   publisher: SITE_NAME,
