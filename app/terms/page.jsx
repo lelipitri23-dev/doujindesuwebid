@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Terms of Service - Doujindesu',
+  title: 'Terms of Service',
   description: 'Syarat dan Ketentuan layanan Doujindesu.',
 };
 

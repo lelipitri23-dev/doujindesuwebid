@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Privacy Policy - Doujindesu',
+  title: 'Privacy Policy',
   description: 'Kebijakan Privasi untuk layanan Doujindesu.',
 };
 

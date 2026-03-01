@@ -5,17 +5,25 @@ import Link from 'next/link';
 import {
   Settings, List, ArrowLeft, X,
   ChevronLeft, ChevronRight, Home,
-  Play, Pause, CircleAlert
+  Play, Pause, CircleAlert, Download
 } from 'lucide-react';
 import AdBanner from '@/components/AdBanner';
 import { useAuth } from '@/context/AuthContext';
+
+const RAW_FREE_DOWNLOAD_CHAPTER_LIMIT = Number.parseInt(
+  process.env.NEXT_PUBLIC_FREE_DOWNLOAD_CHAPTER_LIMIT || '5',
+  10
+);
+const FREE_DOWNLOAD_CHAPTER_LIMIT = Number.isFinite(RAW_FREE_DOWNLOAD_CHAPTER_LIMIT) && RAW_FREE_DOWNLOAD_CHAPTER_LIMIT > 0
+  ? RAW_FREE_DOWNLOAD_CHAPTER_LIMIT
+  : 5;
 
 // Gambar dengan proteksi klik kanan & tap lama
 function ProtectedImage({ src, alt, className }) {
   const longPressTimer = useRef(null);
 
   const handleTouchStart = () => {
-    longPressTimer.current = setTimeout(() => {}, 500);
+    longPressTimer.current = setTimeout(() => { }, 500);
   };
   const handleTouchEnd = () => {
     if (longPressTimer.current) {
@@ -41,25 +49,115 @@ function ProtectedImage({ src, alt, className }) {
   );
 }
 
+function normalizeChapterImageUrl(rawUrl) {
+  if (!rawUrl) return '';
+
+  let url = String(rawUrl).trim();
+  url = url.replace(
+    /^https?:\/\/cdn\.manhwature\.com\/desu\.photos\//i,
+    'https://desu.photos/'
+  );
+  url = url.replace(
+    /^https?:\/\/desu\.photos\/uploads\//i,
+    'https://desu.photos/storage/uploads/'
+  );
+  url = url.replace(
+    /^https?:\/\/desu\.photos\/storage\/storage\/uploads\//i,
+    'https://desu.photos/storage/uploads/'
+  );
+
+  if (/^https?:\/\/desu\.photos\//i.test(url)) {
+    return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+  }
+
+  return url;
+}
+
+async function imageUrlToJpegData(src, quality = 0.84) {
+  const res = await fetch(src, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Gagal memuat gambar (${res.status})`);
+
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error('Gagal decode gambar'));
+      el.src = objectUrl;
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas context tidak tersedia');
+
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+
+    return {
+      dataUrl: canvas.toDataURL('image/jpeg', quality),
+      width: canvas.width,
+      height: canvas.height,
+    };
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+function getDownloadHistoryStorageKey(uid) {
+  return `pdf_downloaded_chapters_${uid}`;
+}
+
+function readDownloadedChapterKeys(uid) {
+  if (!uid || typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(getDownloadHistoryStorageKey(uid));
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((v) => typeof v === 'string' && v.trim().length > 0);
+  } catch {
+    return [];
+  }
+}
+
+function saveDownloadedChapterKeys(uid, chapterKeys) {
+  if (!uid || typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(
+      getDownloadHistoryStorageKey(uid),
+      JSON.stringify(chapterKeys)
+    );
+  } catch {
+    // Ignore quota/storage errors.
+  }
+}
+
 export default function ReaderClient() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
   const { slug, chapterSlug } = params;
 
-  const [data, setData]             = useState(null);
+  const [data, setData] = useState(null);
   const [chapterList, setChapterList] = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState(null);
-  const [showUI, setShowUI]         = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showUI, setShowUI] = useState(true);
   const [activeMenu, setActiveMenu] = useState(null);
-  const [progress, setProgress]     = useState(0);
+  const [progress, setProgress] = useState(0);
   const [imageWidth, setImageWidth] = useState(800);
   const [fitToWidth, setFitToWidth] = useState(false);
   const [isAutoScrolling, setIsAutoScrolling] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(2);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [downloadedChapterKeys, setDownloadedChapterKeys] = useState([]);
 
-  const lastScrollY    = useRef(0);
+  const lastScrollY = useRef(0);
   const scrollInterval = useRef(null);
 
   // Blokir klik kanan
@@ -87,18 +185,18 @@ export default function ReaderClient() {
         // ── Simpan history ke backend (jika user login) ──
         const readData = jsonRead.data;
         if (user?.uid && readData?.manga && readData?.chapter) {
-          const manga   = readData.manga;
+          const manga = readData.manga;
           const chapter = readData.chapter;
           fetch(`${proxyBase}/users/${user.uid}/history`, {
-            method:  'POST',
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              type:             manga.metadata?.type || manga.type || 'manga',
-              slug:             manga.slug,
-              title:            manga.title,
-              thumb:            manga.thumb || manga.coverImage || '',
+              type: manga.metadata?.type || manga.type || 'manga',
+              slug: manga.slug,
+              title: manga.title,
+              thumb: manga.thumb || manga.coverImage || '',
               lastChapterTitle: chapter.title,
-              lastChapterSlug:  chapter.slug,
+              lastChapterSlug: chapter.slug,
             }),
           }).catch(err => console.warn('[History] gagal simpan:', err.message));
         }
@@ -143,8 +241,8 @@ export default function ReaderClient() {
 
   // Scroll handler
   const handleScroll = useCallback(() => {
-    const scrollTop  = window.scrollY;
-    const docHeight  = document.documentElement.scrollHeight - window.innerHeight;
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
     const newProgress = docHeight > 0 ? Math.round((scrollTop / docHeight) * 100) : 0;
     setProgress(newProgress);
 
@@ -174,6 +272,107 @@ export default function ReaderClient() {
     if (!isAutoScrolling) setShowUI(false);
   };
 
+  const isLoggedIn = !!user?.uid;
+  const isUnlimitedMember = !!(user?.isPremium || user?.isAdmin);
+  const maxFreeChapters = FREE_DOWNLOAD_CHAPTER_LIMIT;
+  const currentChapterKey = `${slug}:${chapterSlug}`;
+  const hasDownloadedCurrentChapter = downloadedChapterKeys.includes(currentChapterKey);
+  const usedFreeChapterSlots = downloadedChapterKeys.length;
+  const remainingFreeChapterSlots = Math.max(maxFreeChapters - usedFreeChapterSlots, 0);
+
+  useEffect(() => {
+    if (!isLoggedIn || isUnlimitedMember) {
+      setDownloadedChapterKeys([]);
+      return;
+    }
+    setDownloadedChapterKeys(readDownloadedChapterKeys(user.uid));
+  }, [isLoggedIn, isUnlimitedMember, user?.uid]);
+
+  const handleDownloadPdf = async () => {
+    if (isDownloadingPdf) return;
+    if (!isLoggedIn) {
+      window.alert('Silakan login untuk menggunakan fitur download PDF.');
+      return;
+    }
+    if (!isUnlimitedMember && !hasDownloadedCurrentChapter && usedFreeChapterSlots >= maxFreeChapters) {
+      window.alert(
+        `Batas download member biasa sudah tercapai (${maxFreeChapters} chapter). Upgrade premium untuk akses tanpa batas.`
+      );
+      return;
+    }
+
+    const images = (data?.chapter?.images || [])
+      .map((img) => normalizeChapterImageUrl(img))
+      .filter(Boolean);
+
+    if (images.length === 0) {
+      window.alert('Tidak ada gambar chapter untuk diunduh.');
+      return;
+    }
+
+    setIsDownloadingPdf(true);
+
+    try {
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a4',
+        compress: true,
+      });
+
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      let pagesAdded = 0;
+
+      for (const src of images) {
+        try {
+          const image = await imageUrlToJpegData(src);
+          if (pagesAdded > 0) pdf.addPage();
+
+          const imgH = (image.height * pageW) / image.width;
+          let heightLeft = imgH;
+          let position = 0;
+
+          pdf.addImage(image.dataUrl, 'JPEG', 0, position, pageW, imgH, undefined, 'FAST');
+          pagesAdded += 1;
+          heightLeft -= pageH;
+
+          while (heightLeft > 0) {
+            position = heightLeft - imgH;
+            pdf.addPage();
+            pdf.addImage(image.dataUrl, 'JPEG', 0, position, pageW, imgH, undefined, 'FAST');
+            pagesAdded += 1;
+            heightLeft -= pageH;
+          }
+        } catch (err) {
+          console.warn('[PDF] skip image:', err?.message || err);
+        }
+      }
+
+      if (pagesAdded === 0) {
+        window.alert('Gagal membuat PDF. Semua gambar chapter gagal diproses.');
+        return;
+      }
+
+      const safeTitle = `${mangaTitle || slug || 'manga'} - ${chapterTitle || chapterSlug || 'chapter'}`
+        .replace(/[\\/:*?"<>|]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      pdf.save(`${safeTitle}.pdf`);
+
+      if (!isUnlimitedMember && !hasDownloadedCurrentChapter) {
+        const nextKeys = [...downloadedChapterKeys, currentChapterKey];
+        saveDownloadedChapterKeys(user.uid, nextKeys);
+        setDownloadedChapterKeys(nextKeys);
+      }
+    } catch (err) {
+      window.alert(`Gagal membuat PDF: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
+
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-[#080808]">
       <div className="flex flex-col items-center gap-3">
@@ -197,7 +396,7 @@ export default function ReaderClient() {
   );
 
   const { chapter, manga, navigation } = data;
-  const mangaTitle   = manga?.title || '';
+  const mangaTitle = manga?.title || '';
   const chapterTitle = chapter?.title || '';
 
   return (
@@ -221,7 +420,7 @@ export default function ReaderClient() {
             chapter.images.map((img, idx) => (
               <ProtectedImage
                 key={idx}
-                src={img}
+                src={normalizeChapterImageUrl(img)}
                 alt={`Page ${idx + 1}`}
                 className="w-full h-auto block mb-0 shadow-2xl"
               />
@@ -308,6 +507,39 @@ export default function ReaderClient() {
           </div>
           <div className="space-y-4">
             <div>
+              <button
+                onClick={handleDownloadPdf}
+                disabled={isDownloadingPdf || !isLoggedIn}
+                className={`w-full flex items-center justify-between text-[11px] font-semibold px-3 py-2 rounded-lg border transition-colors mb-3 ${isDownloadingPdf || !isLoggedIn
+                    ? 'text-gray-500 border-gray-800 cursor-not-allowed'
+                    : 'text-gray-200 border-gray-700 hover:border-blue-500 hover:text-blue-400'
+                  }`}
+              >
+                <span>
+                  {isDownloadingPdf
+                    ? 'MEMPROSES PDF...'
+                    : !isLoggedIn
+                      ? 'LOGIN UNTUK DOWNLOAD PDF'
+                      : isUnlimitedMember
+                        ? 'DOWNLOAD CHAPTER PDF (FULL)'
+                        : `DOWNLOAD PDF (LIMIT ${maxFreeChapters} CHAPTER)`}
+                </span>
+                <Download size={14} />
+              </button>
+              {!isLoggedIn && (
+                <p className="text-[10px] text-yellow-400 mb-3">
+                  Fitur download PDF hanya untuk member login.
+                </p>
+              )}
+              {isLoggedIn && !isUnlimitedMember && (
+                <p className="text-[10px] text-yellow-400 mb-3">
+                  Member biasa dibatasi {maxFreeChapters} chapter total. Terpakai {usedFreeChapterSlots}/{maxFreeChapters}.
+                  {hasDownloadedCurrentChapter
+                    ? ' Chapter ini sudah terdaftar, jadi tetap bisa diunduh ulang.'
+                    : ` Sisa slot: ${remainingFreeChapterSlots}.`}
+                </p>
+              )}
+
               <div className="flex justify-between text-xs text-gray-400 mb-2 font-semibold">
                 <span>LEBAR GAMBAR</span>
                 <span>{fitToWidth ? 'FIT' : `${Math.round(imageWidth / 10)}%`}</span>
@@ -359,11 +591,10 @@ export default function ReaderClient() {
                   <Link
                     key={ch._id || ch.slug}
                     href={`/read/${slug}/${ch.slug}`}
-                    className={`h-10 flex items-center justify-center rounded-lg text-xs font-bold transition ${
-                      isCurrent
+                    className={`h-10 flex items-center justify-center rounded-lg text-xs font-bold transition ${isCurrent
                         ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(37,99,235,0.5)]'
                         : 'bg-[#222] text-gray-400 hover:bg-[#333] hover:text-white border border-transparent hover:border-gray-600'
-                    }`}
+                      }`}
                   >
                     {String(chNumber).length > 5 ? String(chNumber).slice(0, 5) : chNumber}
                   </Link>
