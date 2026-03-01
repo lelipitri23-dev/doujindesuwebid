@@ -23,6 +23,9 @@ export default function SyncBanner() {
           <p className="text-xs text-yellow-400/80 mt-0.5">
             Bagi pengguna lama, silakan <Link href="/login" className="underline font-bold text-yellow-400 hover:text-yellow-300">login</Link> untuk menyinkronkan Library dan Histori bacaan kamu.
           </p>
+          <p className="text-xs text-yellow-300 mt-1 font-semibold">
+            Info (Beta): fitur download sudah tersedia.
+          </p>
         </div>
       </div>
     </div>

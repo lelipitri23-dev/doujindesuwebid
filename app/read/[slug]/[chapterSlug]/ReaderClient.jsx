@@ -415,6 +415,14 @@ export default function ReaderClient() {
           style={{ maxWidth: fitToWidth ? '100%' : `${imageWidth}px`, padding: fitToWidth ? '0' : '0 1rem' }}
         >
           <AdBanner slot="READER_TOP" className="mb-3" />
+          <div className="mb-3 rounded-xl border border-blue-500/35 bg-blue-500/10 px-3 py-2">
+            <p className="text-[11px] font-semibold text-blue-200">
+              Info (Beta): fitur download sudah tersedia.
+            </p>
+            <p className="text-[10px] text-blue-200/80 mt-0.5">
+              Buka menu Pengaturan untuk mengunduh chapter dalam format PDF.
+            </p>
+          </div>
 
           {chapter.images?.length > 0 ? (
             chapter.images.map((img, idx) => (
