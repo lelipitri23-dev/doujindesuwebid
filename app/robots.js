@@ -7,7 +7,7 @@ export default function robots() {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/_next/', '/user/', '/bookmarks'],
+        disallow: ['/api/', '/_next/', '/user/', '/bookmarks', '/changelog'],
       },
       // ✅ Blok AI crawlers — masing-masing blok terpisah
       { userAgent: 'GPTBot', disallow: '/' },
@@ -20,7 +20,5 @@ export default function robots() {
       { userAgent: 'PerplexityBot', disallow: '/' },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
-    // host pakai SITE_URL bukan localhost
-    host: SITE_URL,
   };
 }

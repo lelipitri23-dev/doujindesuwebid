@@ -5,6 +5,7 @@ import Script from 'next/script';
 import AnalyticsProvider from '@/components/AnalyticsProvider';
 import AdScript from '@/components/AdScript';
 import AdBanner from '@/components/AdBanner';
+import ThemeProvider from '@/components/ThemeProvider';
 
 const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME || '{SITE_NAME}';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://';
@@ -53,7 +54,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="id" className="dark">
+    <html lang="id" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -111,19 +112,21 @@ export default function RootLayout({ children }) {
           data-key="FZV4LVK/Nt1VZAsuzGsAvQ"
           strategy="afterInteractive"
         />
-        <AuthProvider>
-          {/* AdScript harus di dalam AuthProvider agar bisa cek status user */}
-          <AdScript />
+        <ThemeProvider>
+          <AuthProvider>
+            {/* AdScript harus di dalam AuthProvider agar bisa cek status user */}
+            <AdScript />
 
-          <Suspense fallback={null}>
-            <AnalyticsProvider>
-              {children}
-            </AnalyticsProvider>
-          </Suspense>
+            <Suspense fallback={null}>
+              <AnalyticsProvider>
+                {children}
+              </AnalyticsProvider>
+            </Suspense>
 
-          {/* Sticky bottom ad — harus di dalam AuthProvider agar tidak tampil untuk admin/premium */}
-          <AdBanner slot="STICKY_BOTTOM" sticky />
-        </AuthProvider>
+            {/* Sticky bottom ad — harus di dalam AuthProvider agar tidak tampil untuk admin/premium */}
+            <AdBanner slot="STICKY_BOTTOM" sticky />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

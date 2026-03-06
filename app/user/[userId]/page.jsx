@@ -1,6 +1,8 @@
 import PublicProfile from '@/components/PublicProfile';
 import { getPublicProfile } from '@/lib/profile';
 
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata({ params }) {
   const { userId } = await params;
 

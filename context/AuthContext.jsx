@@ -12,9 +12,6 @@ import {
 import { auth, googleProvider } from '@/lib/firebase';
 import { trackLogin, trackSignUp } from '@/lib/analytics';
 
-// Sync user ke BACKEND
-import { updatePublicProfile } from '@/lib/profile';
-
 // ─── DAFTAR UID ADMIN ────────────────────────────────────────
 // Sumber kebenaran tunggal untuk pengecekan admin (dipakai di seluruh app)
 export const ADMIN_UIDS = ['TPuc7EiYeFZcea9HGMe0mwl2ie13'];
@@ -22,7 +19,7 @@ export const ADMIN_UIDS = ['TPuc7EiYeFZcea9HGMe0mwl2ie13'];
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,37 +32,31 @@ export function AuthProvider({ children }) {
         //    (belum tampilkan iklan sebelum sync selesai — loading masih true)
         const baseUser = {
           ...firebaseUser,
-          isAdmin:   isAdminByUID,
+          isAdmin: isAdminByUID,
           isPremium: false,
         };
 
         try {
-          // 3. Update profil publik
-          updatePublicProfile(firebaseUser.uid, {
-            email:       firebaseUser.email       || '',
-            displayName: firebaseUser.displayName || '',
-            photoURL:    firebaseUser.photoURL    || '',
-          });
-
-          // 4. Ambil status premium dari backend
+          // 3. Sync ke backend & ambil status premium
           const res = await fetch(`/api/proxy/users/sync`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              googleId:    firebaseUser.uid,
-              email:       firebaseUser.email,
+              googleId: firebaseUser.uid,
+              email: firebaseUser.email,
               displayName: firebaseUser.displayName,
-              photoURL:    firebaseUser.photoURL
+              photoURL: firebaseUser.photoURL,
+              downloadLimit: 20
             })
           });
           const dbData = await res.json();
 
-          // 5. Gabungkan: admin dari UID lokal, premium dari backend
+          // 4. Gabungkan: admin dari UID lokal, premium dari backend
           if (dbData.success && dbData.data) {
             setUser({
               ...baseUser,
               // Admin: true jika UID cocok ATAU backend menandai admin
-              isAdmin:   isAdminByUID || !!dbData.data.isAdmin,
+              isAdmin: isAdminByUID || !!dbData.data.isAdmin,
               isPremium: !!dbData.data.isPremium,
             });
           } else {

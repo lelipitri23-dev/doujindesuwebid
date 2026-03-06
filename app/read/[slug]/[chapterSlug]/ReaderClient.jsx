@@ -5,18 +5,14 @@ import Link from 'next/link';
 import {
   Settings, List, ArrowLeft, X,
   ChevronLeft, ChevronRight, Home,
-  Play, Pause, CircleAlert, Download
+  Play, Pause, CircleAlert, Download,
+  ArrowUp, ArrowDown
 } from 'lucide-react';
 import AdBanner from '@/components/AdBanner';
 import { useAuth } from '@/context/AuthContext';
 
-const RAW_FREE_DOWNLOAD_CHAPTER_LIMIT = Number.parseInt(
-  process.env.NEXT_PUBLIC_FREE_DOWNLOAD_CHAPTER_LIMIT || '5',
-  10
-);
-const FREE_DOWNLOAD_CHAPTER_LIMIT = Number.isFinite(RAW_FREE_DOWNLOAD_CHAPTER_LIMIT) && RAW_FREE_DOWNLOAD_CHAPTER_LIMIT > 0
-  ? RAW_FREE_DOWNLOAD_CHAPTER_LIMIT
-  : 5;
+// Download limit sekarang dikelola oleh backend (POST /users/:googleId/download)
+// 20x/hari untuk member biasa, unlimited untuk premium/admin
 
 // Gambar dengan proteksi klik kanan & tap lama
 function ProtectedImage({ src, alt, className }) {
@@ -109,33 +105,7 @@ async function imageUrlToJpegData(src, quality = 0.84) {
   }
 }
 
-function getDownloadHistoryStorageKey(uid) {
-  return `pdf_downloaded_chapters_${uid}`;
-}
-
-function readDownloadedChapterKeys(uid) {
-  if (!uid || typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(getDownloadHistoryStorageKey(uid));
-    const parsed = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((v) => typeof v === 'string' && v.trim().length > 0);
-  } catch {
-    return [];
-  }
-}
-
-function saveDownloadedChapterKeys(uid, chapterKeys) {
-  if (!uid || typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(
-      getDownloadHistoryStorageKey(uid),
-      JSON.stringify(chapterKeys)
-    );
-  } catch {
-    // Ignore quota/storage errors.
-  }
-}
+// Download limit dikelola oleh backend — tidak perlu localStorage lagi
 
 export default function ReaderClient() {
   const params = useParams();
@@ -155,7 +125,6 @@ export default function ReaderClient() {
   const [isAutoScrolling, setIsAutoScrolling] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(2);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
-  const [downloadedChapterKeys, setDownloadedChapterKeys] = useState([]);
 
   const lastScrollY = useRef(0);
   const scrollInterval = useRef(null);
@@ -272,21 +241,11 @@ export default function ReaderClient() {
     if (!isAutoScrolling) setShowUI(false);
   };
 
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  const scrollToBottom = () => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+
   const isLoggedIn = !!user?.uid;
   const isUnlimitedMember = !!(user?.isPremium || user?.isAdmin);
-  const maxFreeChapters = FREE_DOWNLOAD_CHAPTER_LIMIT;
-  const currentChapterKey = `${slug}:${chapterSlug}`;
-  const hasDownloadedCurrentChapter = downloadedChapterKeys.includes(currentChapterKey);
-  const usedFreeChapterSlots = downloadedChapterKeys.length;
-  const remainingFreeChapterSlots = Math.max(maxFreeChapters - usedFreeChapterSlots, 0);
-
-  useEffect(() => {
-    if (!isLoggedIn || isUnlimitedMember) {
-      setDownloadedChapterKeys([]);
-      return;
-    }
-    setDownloadedChapterKeys(readDownloadedChapterKeys(user.uid));
-  }, [isLoggedIn, isUnlimitedMember, user?.uid]);
 
   const handleDownloadPdf = async () => {
     if (isDownloadingPdf) return;
@@ -294,11 +253,29 @@ export default function ReaderClient() {
       window.alert('Silakan login untuk menggunakan fitur download PDF.');
       return;
     }
-    if (!isUnlimitedMember && !hasDownloadedCurrentChapter && usedFreeChapterSlots >= maxFreeChapters) {
-      window.alert(
-        `Batas download member biasa sudah tercapai (${maxFreeChapters} chapter). Upgrade premium untuk akses tanpa batas.`
-      );
-      return;
+
+    // Cek limit download dari backend (kecuali premium/admin)
+    if (!isUnlimitedMember) {
+      try {
+        const proxyBase = `${window.location.origin}/api/proxy`;
+        const limitRes = await fetch(`${proxyBase}/users/${user.uid}/download`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const limitJson = await limitRes.json();
+        if (limitJson.success && limitJson.data && !limitJson.data.allowed) {
+          window.alert(limitJson.data.message || 'Batas download harian tercapai. Upgrade Premium untuk akses tanpa batas!');
+          return;
+        }
+        if (!limitJson.success) {
+          window.alert('Gagal mengecek limit download. Coba lagi.');
+          return;
+        }
+      } catch (err) {
+        console.error('[Download] limit check error:', err);
+        window.alert('Gagal mengecek limit download. Coba lagi.');
+        return;
+      }
     }
 
     const images = (data?.chapter?.images || [])
@@ -361,11 +338,7 @@ export default function ReaderClient() {
         .trim();
       pdf.save(`${safeTitle}.pdf`);
 
-      if (!isUnlimitedMember && !hasDownloadedCurrentChapter) {
-        const nextKeys = [...downloadedChapterKeys, currentChapterKey];
-        saveDownloadedChapterKeys(user.uid, nextKeys);
-        setDownloadedChapterKeys(nextKeys);
-      }
+      // Hitungan download sudah ditambah oleh backend saat cek limit
     } catch (err) {
       window.alert(`Gagal membuat PDF: ${err?.message || 'Unknown error'}`);
     } finally {
@@ -374,21 +347,21 @@ export default function ReaderClient() {
   };
 
   if (loading) return (
-    <div className="h-screen flex items-center justify-center bg-[#080808]">
+    <div className="h-screen flex items-center justify-center bg-bg-primary">
       <div className="flex flex-col items-center gap-3">
         <div className="w-10 h-10 border-2 border-accent-red border-t-transparent rounded-full animate-spin" />
-        <p className="text-gray-400 text-sm">Memuat chapter...</p>
+        <p className="text-text-muted text-sm">Memuat chapter...</p>
       </div>
     </div>
   );
 
   if (error || !data) return (
-    <div className="h-screen flex flex-col items-center justify-center bg-[#080808] gap-4 px-4">
-      <CircleAlert size={48} className="text-red-500" />
-      <p className="text-red-400 text-center">{error || 'Gagal memuat chapter'}</p>
+    <div className="h-screen flex flex-col items-center justify-center bg-bg-primary gap-4 px-4">
+      <CircleAlert size={48} className="text-accent-red" />
+      <p className="text-text-primary text-center">{error || 'Gagal memuat chapter'}</p>
       <button
         onClick={() => router.back()}
-        className="px-5 py-2.5 bg-gray-800 text-white rounded-xl text-sm font-bold"
+        className="px-5 py-2.5 bg-bg-elevated text-text-primary rounded-xl text-sm font-bold"
       >
         Kembali
       </button>
@@ -400,7 +373,7 @@ export default function ReaderClient() {
   const chapterTitle = chapter?.title || '';
 
   return (
-    <div className="bg-[#080808] min-h-screen relative text-gray-200 font-sans select-none">
+    <div className="bg-bg-primary min-h-screen relative text-text-primary font-sans select-none">
 
       {/* CONTENT */}
       <div
@@ -417,10 +390,10 @@ export default function ReaderClient() {
           <AdBanner slot="READER_TOP" className="mb-3" />
           <div className="mb-3 rounded-xl border border-blue-500/35 bg-blue-500/10 px-3 py-2">
             <p className="text-[11px] font-semibold text-blue-200">
-              Info (Beta): fitur download sudah tersedia.
+              Info Fitur Download PDF
             </p>
             <p className="text-[10px] text-blue-200/80 mt-0.5">
-              Buka menu Pengaturan untuk mengunduh chapter dalam format PDF.
+              Member biasa memiliki batas unduhan 20x/hari. Buka menu Pengaturan (ikon Gear) di bawah untuk memproses dan mengunduh chapter.
             </p>
           </div>
 
@@ -435,8 +408,8 @@ export default function ReaderClient() {
             ))
           ) : (
             <div className="flex flex-col items-center justify-center py-24 gap-4">
-              <CircleAlert size={48} className="text-yellow-500" />
-              <p className="text-gray-400">Tidak ada gambar di chapter ini.</p>
+              <CircleAlert size={48} className="text-accent-gold" />
+              <p className="text-text-muted">Tidak ada gambar di chapter ini.</p>
             </div>
           )}
 
@@ -445,73 +418,91 @@ export default function ReaderClient() {
       </div>
 
       {/* TOP HEADER */}
-      <div className={`fixed top-0 left-0 right-0 h-14 bg-[#111]/90 backdrop-blur-md z-40 border-b border-white/5 flex items-center px-4 justify-between transition-transform duration-300 ${showUI ? 'translate-y-0' : '-translate-y-full'}`}>
+      <div className={`fixed top-0 left-0 right-0 h-14 bg-bg-primary/95 backdrop-blur-md z-40 border-b border-border flex items-center px-4 justify-between transition-transform duration-300 ${showUI ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="flex items-center gap-3 overflow-hidden">
-          <Link href={`/manga/${manga?.slug || slug}`} className="p-2 -ml-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition">
+          <Link href={`/manga/${manga?.slug || slug}`} className="p-2 -ml-2 text-text-secondary hover:text-accent-red hover:bg-bg-elevated rounded-full transition">
             <ArrowLeft size={20} />
           </Link>
           <div className="flex flex-col">
-            <h1 className="font-bold text-sm text-gray-100 line-clamp-1">{mangaTitle}</h1>
-            <span className="text-xs text-gray-400 truncate max-w-[200px]">{chapterTitle}</span>
+            <h1 className="font-bold text-sm text-text-primary line-clamp-1">{mangaTitle}</h1>
+            <span className="text-xs text-text-muted truncate max-w-[200px]">{chapterTitle}</span>
           </div>
         </div>
-        <div className="text-[10px] font-bold tracking-wider bg-white/10 text-gray-300 px-2 py-1 rounded-md">
+        <div className="text-[10px] font-bold tracking-wider bg-bg-elevated text-text-primary px-2 py-1 rounded-md">
           {progress}%
         </div>
       </div>
 
+      {/* FLOATING SCROLL BUTTONS */}
+      <div className={`fixed right-4 bottom-24 z-40 flex flex-col gap-3 transition-opacity duration-300 ${showUI ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <button
+          onClick={scrollToTop}
+          className="w-10 h-10 bg-bg-card border border-border shadow-lg rounded-full flex items-center justify-center text-text-muted hover:text-accent-red hover:bg-bg-elevated transition-colors active:scale-95"
+          aria-label="Scroll to Top"
+        >
+          <ArrowUp size={20} />
+        </button>
+        <button
+          onClick={scrollToBottom}
+          className="w-10 h-10 bg-bg-card border border-border shadow-lg rounded-full flex items-center justify-center text-text-muted hover:text-accent-red hover:bg-bg-elevated transition-colors active:scale-95"
+          aria-label="Scroll to Bottom"
+        >
+          <ArrowDown size={20} />
+        </button>
+      </div>
+
       {/* BOTTOM DOCK */}
       <div className={`fixed bottom-8 left-0 right-0 z-50 flex justify-center px-4 transition-transform duration-300 ${showUI ? 'translate-y-0' : 'translate-y-[150%]'}`}>
-        <div className="bg-[#0f0f0f] border border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.5)] rounded-full px-6 py-3 flex items-center gap-6 sm:gap-8 min-w-[320px] justify-between backdrop-blur-md">
+        <div className="bg-bg-card border border-border shadow-[0_8px_30px_rgb(0,0,0,0.2)] rounded-full px-6 py-3 flex items-center gap-6 sm:gap-8 min-w-[320px] justify-between backdrop-blur-md">
           {navigation?.prev ? (
-            <Link href={`/read/${slug}/${navigation.prev}`} className="text-gray-400 hover:text-white transition active:scale-95">
+            <Link href={`/read/${slug}/${navigation.prev}`} className="text-text-muted hover:text-text-primary transition active:scale-95">
               <ChevronLeft size={24} />
             </Link>
           ) : (
-            <span className="text-gray-700 cursor-not-allowed"><ChevronLeft size={24} /></span>
+            <span className="text-text-muted opacity-50 cursor-not-allowed"><ChevronLeft size={24} /></span>
           )}
 
           <button
             onClick={() => toggleMenu('settings')}
-            className={`transition active:scale-95 ${activeMenu === 'settings' ? 'text-blue-500' : 'text-gray-400 hover:text-white'}`}
+            className={`transition active:scale-95 ${activeMenu === 'settings' ? 'text-accent-red' : 'text-text-muted hover:text-text-primary'}`}
           >
             <Settings size={22} />
           </button>
 
           <button
             onClick={toggleAutoScroll}
-            className={`transition active:scale-95 ${isAutoScrolling ? 'text-blue-500' : 'text-gray-400 hover:text-white'}`}
+            className={`transition active:scale-95 ${isAutoScrolling ? 'text-accent-red' : 'text-text-muted hover:text-text-primary'}`}
           >
             {isAutoScrolling ? <Pause size={22} fill="currentColor" /> : <Play size={22} fill="currentColor" />}
           </button>
 
           <button
             onClick={() => toggleMenu('chapters')}
-            className={`transition active:scale-95 ${activeMenu === 'chapters' ? 'text-blue-500' : 'text-gray-400 hover:text-white'}`}
+            className={`transition active:scale-95 ${activeMenu === 'chapters' ? 'text-accent-red' : 'text-text-muted hover:text-text-primary'}`}
           >
             <List size={24} />
           </button>
 
-          <Link href={`/manga/${manga?.slug || slug}`} className="text-gray-400 hover:text-blue-400 transition active:scale-95">
+          <Link href={`/manga/${manga?.slug || slug}`} className="text-text-muted hover:text-accent-red transition active:scale-95">
             <Home size={22} />
           </Link>
 
           {navigation?.next ? (
-            <Link href={`/read/${slug}/${navigation.next}`} className="text-gray-400 hover:text-white transition active:scale-95">
+            <Link href={`/read/${slug}/${navigation.next}`} className="text-text-muted hover:text-text-primary transition active:scale-95">
               <ChevronRight size={24} />
             </Link>
           ) : (
-            <span className="text-gray-700 cursor-not-allowed"><ChevronRight size={24} /></span>
+            <span className="text-text-muted opacity-50 cursor-not-allowed"><ChevronRight size={24} /></span>
           )}
         </div>
       </div>
 
       {/* SETTINGS MENU */}
       {activeMenu === 'settings' && (
-        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-[#151515] border border-white/10 rounded-2xl shadow-2xl z-40 p-5">
-          <div className="flex justify-between items-center mb-4 pb-2 border-b border-white/5">
-            <span className="text-sm font-bold text-gray-200">Pengaturan Reader</span>
-            <button onClick={() => setActiveMenu(null)}><X size={16} /></button>
+        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-bg-card border border-border rounded-2xl shadow-2xl z-40 p-5">
+          <div className="flex justify-between items-center mb-4 pb-2 border-b border-border">
+            <span className="text-sm font-bold text-text-primary">Pengaturan Reader</span>
+            <button onClick={() => setActiveMenu(null)} className="text-text-muted hover:text-accent-red transition-colors"><X size={16} /></button>
           </div>
           <div className="space-y-4">
             <div>
@@ -519,8 +510,8 @@ export default function ReaderClient() {
                 onClick={handleDownloadPdf}
                 disabled={isDownloadingPdf || !isLoggedIn}
                 className={`w-full flex items-center justify-between text-[11px] font-semibold px-3 py-2 rounded-lg border transition-colors mb-3 ${isDownloadingPdf || !isLoggedIn
-                    ? 'text-gray-500 border-gray-800 cursor-not-allowed'
-                    : 'text-gray-200 border-gray-700 hover:border-blue-500 hover:text-blue-400'
+                    ? 'text-text-muted border-border cursor-not-allowed bg-bg-elevated'
+                    : 'text-text-primary border-border bg-transparent hover:border-accent-red hover:text-accent-red'
                   }`}
               >
                 <span>
@@ -530,7 +521,7 @@ export default function ReaderClient() {
                       ? 'LOGIN UNTUK DOWNLOAD PDF'
                       : isUnlimitedMember
                         ? 'DOWNLOAD CHAPTER PDF (FULL)'
-                        : `DOWNLOAD PDF (LIMIT ${maxFreeChapters} CHAPTER)`}
+                        : 'DOWNLOAD PDF (20x/HARI)'}
                 </span>
                 <Download size={14} />
               </button>
@@ -541,21 +532,18 @@ export default function ReaderClient() {
               )}
               {isLoggedIn && !isUnlimitedMember && (
                 <p className="text-[10px] text-yellow-400 mb-3">
-                  Member biasa dibatasi {maxFreeChapters} chapter total. Terpakai {usedFreeChapterSlots}/{maxFreeChapters}.
-                  {hasDownloadedCurrentChapter
-                    ? ' Chapter ini sudah terdaftar, jadi tetap bisa diunduh ulang.'
-                    : ` Sisa slot: ${remainingFreeChapterSlots}.`}
+                  Member biasa dibatasi 20 download per hari. Upgrade Premium untuk akses tanpa batas.
                 </p>
               )}
 
-              <div className="flex justify-between text-xs text-gray-400 mb-2 font-semibold">
+              <div className="flex justify-between text-xs text-text-muted mb-2 font-semibold">
                 <span>LEBAR GAMBAR</span>
                 <span>{fitToWidth ? 'FIT' : `${Math.round(imageWidth / 10)}%`}</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setFitToWidth(!fitToWidth)}
-                  className={`text-[10px] font-bold px-2 py-1 rounded border ${fitToWidth ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-700 text-gray-400'}`}
+                  className={`text-[10px] font-bold px-2 py-1 rounded border transition-colors ${fitToWidth ? 'bg-accent-red border-accent-red text-white' : 'border-border text-text-muted hover:border-accent-red hover:text-accent-red'}`}
                 >
                   FIT
                 </button>
@@ -563,12 +551,12 @@ export default function ReaderClient() {
                   type="range" min="300" max="1200"
                   value={imageWidth} disabled={fitToWidth}
                   onChange={(e) => setImageWidth(Number(e.target.value))}
-                  className="flex-1 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                  className="flex-1 h-1 bg-border rounded-lg appearance-none cursor-pointer"
                 />
               </div>
             </div>
             <div>
-              <div className="flex justify-between text-xs text-gray-400 mb-2 font-semibold">
+              <div className="flex justify-between text-xs text-text-muted mb-2 font-semibold">
                 <span>KECEPATAN AUTO-SCROLL</span>
                 <span>{scrollSpeed}x</span>
               </div>
@@ -576,7 +564,7 @@ export default function ReaderClient() {
                 type="range" min="1" max="10"
                 value={scrollSpeed}
                 onChange={(e) => setScrollSpeed(Number(e.target.value))}
-                className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                className="w-full h-1 bg-border rounded-lg appearance-none cursor-pointer"
               />
             </div>
           </div>
@@ -585,10 +573,10 @@ export default function ReaderClient() {
 
       {/* CHAPTER LIST MENU */}
       {activeMenu === 'chapters' && (
-        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-[#151515] border border-white/10 rounded-2xl shadow-2xl z-40 flex flex-col max-h-[50vh]">
-          <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5 rounded-t-2xl">
-            <h3 className="font-bold text-sm text-gray-200">Chapters ({chapterList.length})</h3>
-            <button onClick={() => setActiveMenu(null)}><X size={18} className="text-gray-400" /></button>
+        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-bg-card border border-border rounded-2xl shadow-2xl z-40 flex flex-col max-h-[50vh]">
+          <div className="p-4 border-b border-border flex justify-between items-center bg-bg-elevated rounded-t-2xl">
+            <h3 className="font-bold text-sm text-text-primary">Chapters ({chapterList.length})</h3>
+            <button onClick={() => setActiveMenu(null)} className="text-text-muted hover:text-accent-red transition-colors"><X size={18} /></button>
           </div>
           <div className="p-2 overflow-y-auto grid grid-cols-5 gap-2">
             {chapterList.length > 0 ? (
@@ -600,8 +588,8 @@ export default function ReaderClient() {
                     key={ch._id || ch.slug}
                     href={`/read/${slug}/${ch.slug}`}
                     className={`h-10 flex items-center justify-center rounded-lg text-xs font-bold transition ${isCurrent
-                        ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(37,99,235,0.5)]'
-                        : 'bg-[#222] text-gray-400 hover:bg-[#333] hover:text-white border border-transparent hover:border-gray-600'
+                        ? 'bg-accent-red text-white shadow-[0_0_10px_rgba(233,121,145,0.5)]'
+                        : 'bg-bg-elevated text-text-muted hover:bg-bg-secondary hover:text-accent-red border border-transparent hover:border-accent-red'
                       }`}
                   >
                     {String(chNumber).length > 5 ? String(chNumber).slice(0, 5) : chNumber}
@@ -609,7 +597,7 @@ export default function ReaderClient() {
                 );
               })
             ) : (
-              <div className="col-span-5 text-center py-6 text-gray-500 text-xs">
+              <div className="col-span-5 text-center py-6 text-text-muted text-xs">
                 Memuat daftar chapter...
               </div>
             )}

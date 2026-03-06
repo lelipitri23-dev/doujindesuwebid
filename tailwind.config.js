@@ -9,10 +9,10 @@ module.exports = {
     extend: {
       colors: {
         bg: {
-          primary: '#080c14',
-          secondary: '#0d1220',
-          card: '#1a1a1a',
-          elevated: '#1a2235',
+          primary: 'var(--bg-primary)',
+          secondary: 'var(--bg-secondary)',
+          card: 'var(--bg-card)',
+          elevated: 'var(--bg-elevated)',
         },
         accent: {
           red: '#e97991',       // → biru utama (blue-500)
@@ -21,11 +21,11 @@ module.exports = {
           gold: '#f59e0b',      // → biru pucat (blue-300)
         },
         text: {
-          primary: '#9e9e9e',
-          secondary: '#94a3b8',
-          muted: '#475569',
+          primary: 'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          muted: 'var(--text-muted)',
         },
-        border: '#1a2235',
+        border: 'var(--border)',
       },
       fontFamily: {
         display: ['var(--font-bebas)', 'sans-serif'],

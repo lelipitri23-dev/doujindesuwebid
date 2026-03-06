@@ -1,4 +1,4 @@
-# Kiryuu — Frontend Next.js
+# Doujindesu — Frontend Next.js
 
 Frontend website baca komik manga, manhwa, manhua. Dibangun dengan **Next.js 14 App Router**, **Tailwind CSS**, SEO-optimized, dan tampilan mobile seperti aplikasi.
 
@@ -15,13 +15,13 @@ cp .env.example .env.local
 
 # 3. Edit .env.local, isi URL API backend kamu:
 # NEXT_PUBLIC_API_URL=http://localhost:5000/api
-# NEXT_PUBLIC_SITE_URL=https://kiryuu.online
+# NEXT_PUBLIC_SITE_URL=https://doujindesu.online
 
 # 4. Jalankan development server
 npm run dev
 ```
 
-Buka [https://kiryuu.online](https://kiryuu.online)
+Buka [https://doujindesu.online](https://doujindesu.online)
 
 ---
 
@@ -99,7 +99,7 @@ komik-app/
 | Variable | Deskripsi | Default |
 |---|---|---|
 | `NEXT_PUBLIC_API_URL` | URL API backend | `http://localhost:5000/api` |
-| `NEXT_PUBLIC_SITE_URL` | URL website live | `https://kiryuu.online` |
+| `NEXT_PUBLIC_SITE_URL` | URL website live | `https://doujindesu.online` |
 | `GOOGLE_SITE_VERIFICATION` | Kode verifikasi Google Search Console | — |
 
 ---

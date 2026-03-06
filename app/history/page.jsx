@@ -1,8 +1,10 @@
 import { Suspense } from 'react';
 import HistoryList from '@/components/HistoryList';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
-  title: 'Riwayat Baca | DoujinDesu',
+  title: 'Riwayat Baca',
   description: 'Semua komik yang pernah kamu baca.',
 };
 

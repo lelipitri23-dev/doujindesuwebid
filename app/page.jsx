@@ -21,7 +21,7 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-bg-primary">
       <Navbar />
-      
+
       <main className="pt-14 pb-safe max-w-2xl mx-auto">
         <SyncBanner />
         {/* Trending Hero Slider */}
@@ -38,6 +38,7 @@ export default async function HomePage() {
             { label: 'Manga', href: '/manga?type=manga' },
             { label: 'Manhwa', href: '/manga?type=manhwa' },
             { label: 'Doujinshi', href: '/manga?type=doujinshi' },
+            { label: 'Changelog', href: '/changelog' },
           ].map((item) => (
             <a
               key={item.href}

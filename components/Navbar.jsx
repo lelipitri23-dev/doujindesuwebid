@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react'; // [FIX] Menambahkan useEffect
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTheme } from 'next-themes';
 import { useAuth } from '@/context/AuthContext';
 import { TagsIcon } from 'lucide-react';
 
@@ -64,6 +65,35 @@ function BellIcon() {
   );
 }
 
+// ─── Theme Toggle ─────────────────────────────────────────
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return <div className="w-9 h-9" />;
+
+  const isDark = theme === 'dark';
+
+  return (
+    <button
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      className="w-9 h-9 flex items-center justify-center rounded-xl bg-bg-elevated border border-border text-text-secondary hover:border-accent-red hover:text-accent-red transition-colors"
+      aria-label="Toggle Theme"
+      title="Toggle Light/Dark Mode"
+    >
+      {isDark ? (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>
+      ) : (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+      )}
+    </button>
+  );
+}
+
 // ─── User Menu Dropdown ───────────────────────────────────
 function UserMenu({ user, logout }) {
   const [open, setOpen] = useState(false);
@@ -117,13 +147,206 @@ function UserMenu({ user, logout }) {
   );
 }
 
+// ─── Smart Search Modal ───────────────────────────────────
+function SmartSearchModal({ open, onClose }) {
+  const router = useRouter();
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const debounceRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // Focus input saat modal dibuka
+  useEffect(() => {
+    if (open && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+    if (!open) {
+      setQuery('');
+      setResults([]);
+      setSearched(false);
+    }
+  }, [open]);
+
+  // Debounced search
+  const doSearch = useCallback(async (q) => {
+    if (!q.trim()) {
+      setResults([]);
+      setSearched(false);
+      return;
+    }
+    setLoading(true);
+    setSearched(true);
+    try {
+      const res = await fetch(`/api/proxy/manga-list?q=${encodeURIComponent(q.trim())}&limit=8`);
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        setResults(json.data);
+      } else {
+        setResults([]);
+      }
+    } catch {
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleChange = (e) => {
+    const val = e.target.value;
+    setQuery(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => doSearch(val), 300);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (query.trim()) {
+      router.push(`/manga?q=${encodeURIComponent(query.trim())}`);
+      onClose();
+    }
+  };
+
+  const handleSelect = (slug) => {
+    router.push(`/manga/${slug}`);
+    onClose();
+  };
+
+  if (!open) return null;
+
+  const typeBadgeColor = (type) => {
+    const t = type?.toLowerCase();
+    if (t === 'manhwa') return 'bg-purple-500/20 text-purple-300';
+    if (t === 'manhua') return 'bg-orange-500/20 text-orange-300';
+    if (t === 'doujinshi') return 'bg-pink-500/20 text-pink-300';
+    return 'bg-blue-500/20 text-blue-300';
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-start justify-center pt-16 px-4" onClick={onClose}>
+      <div className="w-full max-w-lg animate-slide-up" onClick={(e) => e.stopPropagation()}>
+        {/* Search Input */}
+        <form onSubmit={handleSubmit}>
+          <div className="flex items-center gap-3 bg-bg-card border border-border rounded-2xl px-4 py-3 shadow-2xl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-text-muted flex-shrink-0"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={handleChange}
+              placeholder="Cari manga, manhwa, doujinshi..."
+              className="flex-1 bg-transparent text-text-primary placeholder-text-muted outline-none text-base"
+            />
+            {loading && (
+              <div className="w-4 h-4 border-2 border-accent-red/30 border-t-accent-red rounded-full animate-spin flex-shrink-0" />
+            )}
+            {query && !loading && (
+              <button type="button" onClick={() => { setQuery(''); setResults([]); setSearched(false); }} className="text-text-muted hover:text-text-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            )}
+          </div>
+        </form>
+
+        {/* Search Results */}
+        {searched && (
+          <div className="mt-2 bg-bg-card border border-border rounded-2xl shadow-2xl overflow-hidden max-h-[60vh] overflow-y-auto">
+            {loading && results.length === 0 ? (
+              <div className="flex items-center justify-center py-8 gap-2">
+                <div className="w-5 h-5 border-2 border-accent-red/30 border-t-accent-red rounded-full animate-spin" />
+                <span className="text-text-muted text-xs">Mencari...</span>
+              </div>
+            ) : results.length > 0 ? (
+              <>
+                {results.map((manga) => (
+                  <button
+                    key={manga.slug}
+                    onClick={() => handleSelect(manga.slug)}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-bg-elevated transition-colors text-left border-b border-border/30 last:border-b-0"
+                  >
+                    {/* Thumbnail */}
+                    <div className="flex-shrink-0 w-10 h-14 rounded-lg overflow-hidden bg-bg-elevated">
+                      {manga.thumb || manga.coverImage ? (
+                        <img
+                          src={manga.thumb || manga.coverImage}
+                          alt={manga.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-text-muted">
+                            <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M8 7h8M8 12h8M8 17h5" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-text-primary text-sm font-semibold line-clamp-1">{manga.title}</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        {(manga.metadata?.type || manga.type) && (
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase ${typeBadgeColor(manga.metadata?.type || manga.type)}`}>
+                            {manga.metadata?.type || manga.type}
+                          </span>
+                        )}
+                        {(manga.metadata?.status || manga.status) && (
+                          <span className={`text-[9px] font-semibold ${(manga.metadata?.status || manga.status)?.toLowerCase() === 'ongoing' ? 'text-green-400' : 'text-gray-400'}`}>
+                            {manga.metadata?.status || manga.status}
+                          </span>
+                        )}
+                        {manga.chapter_count > 0 && (
+                          <span className="text-[9px] text-text-muted">{manga.chapter_count} ch</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Arrow */}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 text-text-muted flex-shrink-0">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </button>
+                ))}
+
+                {/* See all button */}
+                {query.trim() && (
+                  <button
+                    onClick={() => { router.push(`/manga?q=${encodeURIComponent(query.trim())}`); onClose(); }}
+                    className="w-full py-3 text-center text-xs font-bold text-accent-red hover:bg-bg-elevated transition-colors"
+                  >
+                    Lihat semua hasil untuk &quot;{query.trim()}&quot; →
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col items-center py-8 gap-2">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-8 h-8 text-text-muted">
+                  <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <p className="text-text-muted text-xs">Tidak ditemukan hasil untuk &quot;{query}&quot;</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Hint */}
+        {!searched && (
+          <p className="text-text-muted text-xs text-center mt-3">
+             Ketik untuk mencari • Tekan Enter untuk hasil lengkap
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Navbar ──────────────────────────────────────────
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQ, setSearchQ] = useState('');
 
   // ==========================================
   // [FIX] STATE & LOGIKA NOTIFIKASI
@@ -156,15 +379,6 @@ export default function Navbar() {
   if (pathname.startsWith('/read/')) return null;
   if (pathname.startsWith('/login')) return null;
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQ.trim()) {
-      router.push(`/manga?q=${encodeURIComponent(searchQ.trim())}`);
-      setSearchOpen(false);
-      setSearchQ('');
-    }
-  };
-
   const NAV_ITEMS = [
     { href: '/', icon: HomeIcon, label: 'Home' },
     { href: '/manga', icon: GridIcon, label: 'All' },
@@ -181,8 +395,9 @@ export default function Navbar() {
             <span className="font-display text-2xl text-accent-red tracking-wider">{process.env.NEXT_PUBLIC_SITE_NAME || 'DOUJINDESU'}</span>
           </Link>
 
-          <div className="flex items-center gap-3">
-            <button onClick={() => setSearchOpen(true)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-bg-elevated border border-border text-text-secondary hover:border-accent-red hover:text-accent-red transition-colors">
+          <div className="flex items-center flex-wrap gap-2 sm:gap-3">
+            <ThemeToggle />
+            <button onClick={() => setSearchOpen(true)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-bg-elevated border border-border text-text-secondary hover:border-accent-red hover:text-accent-red transition-colors" title="Pencarian">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
             </button>
 
@@ -241,22 +456,7 @@ export default function Navbar() {
         </div>
       </header>
 
-      {searchOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-start justify-center pt-20 px-4" onClick={() => setSearchOpen(false)}>
-          <form className="w-full max-w-lg animate-slide-up" onClick={(e) => e.stopPropagation()} onSubmit={handleSearch}>
-            <div className="flex items-center gap-3 bg-bg-card border border-border rounded-2xl px-4 py-3 shadow-2xl">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-text-muted flex-shrink-0"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-              <input autoFocus type="text" value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="Cari manga, manhwa, manhua..." className="flex-1 bg-transparent text-text-primary placeholder-text-muted outline-none text-base" />
-              {searchQ && (
-                <button type="button" onClick={() => setSearchQ('')} className="text-text-muted hover:text-text-primary">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                </button>
-              )}
-            </div>
-            <p className="text-text-muted text-xs text-center mt-3">Tekan Enter untuk mencari • Tap di luar untuk tutup</p>
-          </form>
-        </div>
-      )}
+      <SmartSearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-bg-primary/95 backdrop-blur-md border-t border-border">
         <div className="max-w-2xl mx-auto flex items-center justify-around h-16" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>

@@ -216,9 +216,43 @@ export default function HistoryList() {
     setLoading(true);
     try {
       const res = await getUserHistory(user.uid);
-      // Backend mengembalikan { success, data: [...] }
-      // data sudah diurutkan dari lastRead terbaru oleh backend
-      setHistory(Array.isArray(res.data) ? res.data : []);
+      const rawData = Array.isArray(res.data) ? res.data : [];
+
+      // Logic Autodelete: Filter out history older than 24 hours
+      const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+      const now = Date.now();
+
+      const validHistory = [];
+      const expiredSlugs = [];
+
+      rawData.forEach(item => {
+        if (!item.lastRead) {
+           // Jika tidak ada lastRead, kita anggap baru
+           validHistory.push(item);
+           return;
+        }
+        const diff = now - new Date(item.lastRead).getTime();
+        if (diff > ONE_DAY_MS) {
+           expiredSlugs.push(item.slug);
+        } else {
+           validHistory.push(item);
+        }
+      });
+
+      // Update state hanya dengan riwayat yang valid (< 24 jam)
+      setHistory(validHistory);
+
+      // Secara asinkron (background) hapus yang expired dari backend
+      // Digunakan untuk menjaga server db tetap ringan
+      if (expiredSlugs.length > 0) {
+        expiredSlugs.forEach(slug => {
+          removeFromHistory(user.uid, slug).catch(err => {
+            console.warn(`Gagal hapus riwayat usang untuk ${slug}:`, err);
+          });
+        });
+        console.log(`[History] Hapus ${expiredSlugs.length} item lebih dari 24 jam.`);
+      }
+
     } catch (err) {
       console.error('[History] fetch error:', err);
       setHistory([]);

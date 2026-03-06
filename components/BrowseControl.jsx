@@ -70,7 +70,7 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
       onClick={onClick}
       className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${isActive
           ? 'bg-accent-red border-accent-red text-white'
-          : 'bg-transparent border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200'
+          : 'bg-transparent border-border text-text-muted hover:border-accent-red hover:text-text-primary'
         }`}
     >
       {label}
@@ -82,7 +82,7 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div>
-          <h1 className="font-display text-2xl md:text-3xl text-white tracking-wide mb-1">
+          <h1 className="font-display text-2xl md:text-3xl text-text-primary tracking-wide mb-1">
             {q ? (
               <span>Hasil: <span className="text-accent-red">"{q}"</span></span>
             ) : localFilter.genre ? (
@@ -93,23 +93,23 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
               'Daftar Komik'
             )}
           </h1>
-          <p className="text-gray-400 text-xs md:text-sm">
+          <p className="text-text-muted text-xs md:text-sm">
             {totalItems > 0 ? `${totalItems} judul ditemukan` : 'Tidak ada judul ditemukan'}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Toggle View */}
-          <div className="flex items-center bg-gray-900 rounded-lg p-1 border border-gray-800">
+          <div className="flex items-center bg-bg-elevated rounded-lg p-1 border border-border">
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-accent-red text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-accent-red text-white' : 'text-text-muted hover:text-text-primary'}`}
             >
               <List size={20} />
             </button>
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-accent-red text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-accent-red text-white' : 'text-text-muted hover:text-text-primary'}`}
             >
               <Grid size={20} />
             </button>
@@ -117,7 +117,7 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
 
           <button
             onClick={() => setIsFilterOpen(true)}
-            className="relative flex items-center gap-2 px-4 py-2.5 bg-gray-900 border border-gray-800 rounded-lg text-gray-300 hover:border-accent-red hover:text-accent-red transition-all"
+            className="relative flex items-center gap-2 px-4 py-2.5 bg-bg-elevated border border-border rounded-lg text-text-secondary hover:border-accent-red hover:text-accent-red transition-all"
           >
             <Filter size={18} />
             <span className="text-sm font-bold">Filter</span>
@@ -146,14 +146,14 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
           </div>
         )
       ) : (
-        <div className="flex flex-col items-center justify-center py-24 text-center px-4 border-2 border-dashed border-gray-800 rounded-3xl bg-gray-900/30">
-          <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-7 h-7 text-gray-400">
+        <div className="flex flex-col items-center justify-center py-24 text-center px-4 border-2 border-dashed border-border rounded-3xl bg-bg-elevated/30">
+          <div className="w-16 h-16 bg-bg-elevated rounded-full flex items-center justify-center mb-4">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-7 h-7 text-text-muted">
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
           </div>
-          <h3 className="font-display text-lg text-white tracking-wide mb-1">Tidak ada komik ditemukan</h3>
-          <p className="text-gray-400 text-sm max-w-xs mx-auto">Coba kurangi filter atau gunakan kata kunci lain.</p>
+          <h3 className="font-display text-lg text-text-primary tracking-wide mb-1">Tidak ada komik ditemukan</h3>
+          <p className="text-text-muted text-sm max-w-xs mx-auto">Coba kurangi filter atau gunakan kata kunci lain.</p>
         </div>
       )}
 
@@ -163,8 +163,8 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsFilterOpen(false)} />
           <div className="relative w-full max-w-lg bg-bg-card border border-border rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h2 className="text-lg font-bold text-white">Filter Komik</h2>
-              <button onClick={() => setIsFilterOpen(false)} className="text-gray-400 hover:text-white">
+              <h2 className="text-lg font-bold text-text-primary">Filter Komik</h2>
+              <button onClick={() => setIsFilterOpen(false)} className="text-text-muted hover:text-accent-red">
                 <X size={24} />
               </button>
             </div>
@@ -172,7 +172,7 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* Urutan */}
               <div>
-                <h3 className="text-sm font-bold text-white mb-3">Urutan</h3>
+                <h3 className="text-sm font-bold text-text-primary mb-3">Urutan</h3>
                 <div className="flex flex-wrap gap-2">
                   {ORDERS.map((o) => (
                     <OptionButton
@@ -187,7 +187,7 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
 
               {/* Tipe */}
               <div>
-                <h3 className="text-sm font-bold text-white mb-3">Tipe</h3>
+                <h3 className="text-sm font-bold text-text-primary mb-3">Tipe</h3>
                 <div className="flex flex-wrap gap-2">
                   {TYPES.map((t) => (
                     <OptionButton
@@ -202,7 +202,7 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
 
               {/* Status */}
               <div>
-                <h3 className="text-sm font-bold text-white mb-3">Status</h3>
+                <h3 className="text-sm font-bold text-text-primary mb-3">Status</h3>
                 <div className="flex flex-wrap gap-2">
                   {STATUSES.map((s) => (
                     <OptionButton
@@ -218,7 +218,7 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
               {/* Genre */}
               {genres?.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-bold text-white mb-3">Genre</h3>
+                  <h3 className="text-sm font-bold text-text-primary mb-3">Genre</h3>
                   <div className="flex flex-wrap gap-2">
                     <OptionButton
                       label="Semua"
@@ -242,7 +242,7 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
             <div className="p-4 border-t border-border bg-bg-card rounded-b-2xl flex gap-3">
               <button
                 onClick={clearFilter}
-                className="flex-1 py-3 rounded-xl border border-gray-700 text-gray-300 font-bold text-sm hover:bg-bg-elevated"
+                className="flex-1 py-3 rounded-xl border border-border text-text-primary font-bold text-sm hover:bg-bg-elevated"
               >
                 Reset
               </button>
