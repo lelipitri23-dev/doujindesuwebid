@@ -8,6 +8,8 @@ import {
   updateProfile,
   signOut,
   sendPasswordResetEmail,
+  sendEmailVerification,
+  reload,
 } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { trackLogin, trackSignUp } from '@/lib/analytics';
@@ -25,11 +27,18 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        // Jika login dengan email (bukan Google) dan belum verifikasi, skip sync & set null
+        const isEmailProvider = firebaseUser.providerData?.some(p => p.providerId === 'password');
+        if (isEmailProvider && !firebaseUser.emailVerified) {
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
         // 1. Cek admin berdasarkan UID (tidak perlu backend)
         const isAdminByUID = ADMIN_UIDS.includes(firebaseUser.uid);
 
         // 2. Set user dengan default isAdmin & isPremium = false dulu
-        //    (belum tampilkan iklan sebelum sync selesai — loading masih true)
         const baseUser = {
           ...firebaseUser,
           isAdmin: isAdminByUID,
@@ -46,7 +55,7 @@ export function AuthProvider({ children }) {
               email: firebaseUser.email,
               displayName: firebaseUser.displayName,
               photoURL: firebaseUser.photoURL,
-              downloadLimit: 20
+              downloadLimit: 6
             })
           });
           const dbData = await res.json();
@@ -55,24 +64,19 @@ export function AuthProvider({ children }) {
           if (dbData.success && dbData.data) {
             setUser({
               ...baseUser,
-              // Admin: true jika UID cocok ATAU backend menandai admin
               isAdmin: isAdminByUID || !!dbData.data.isAdmin,
               isPremium: !!dbData.data.isPremium,
             });
           } else {
-            // Sync gagal → tetap pakai baseUser (admin by UID masih berlaku)
             setUser(baseUser);
           }
         } catch (error) {
           console.error("Gagal mengambil status premium:", error);
-          // Sync gagal → tetap pakai baseUser agar admin tidak kehilangan privilege
           setUser(baseUser);
         }
       } else {
         setUser(null);
       }
-      // Loading false HANYA setelah sync selesai (atau gagal)
-      // Ini mencegah iklan muncul sebelum status user terkonfirmasi
       setLoading(false);
     });
     return () => unsubscribe();
@@ -85,19 +89,44 @@ export function AuthProvider({ children }) {
     return result;
   };
 
-  // Login Email
+  // Login Email — blokir jika belum verifikasi email
   const loginWithEmail = async (email, password) => {
     const result = await signInWithEmailAndPassword(auth, email, password);
+    // Reload untuk mendapat status emailVerified terbaru dari Firebase
+    await reload(result.user);
+    if (!result.user.emailVerified) {
+      // Logout otomatis agar sesi tidak aktif
+      await signOut(auth);
+      const err = new Error('Email belum diverifikasi.');
+      err.code = 'auth/email-not-verified';
+      throw err;
+    }
     trackLogin('email');
     return result;
   };
 
-  // Register Email
+  // Register Email — kirim email verifikasi, lalu logout agar tidak otomatis masuk
   const registerWithEmail = async (email, password, displayName) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName });
+    await sendEmailVerification(cred.user);
+    // Logout agar user tidak langsung masuk sebelum verifikasi
+    await signOut(auth);
     trackSignUp('email');
     return cred;
+  };
+
+  // Kirim ulang email verifikasi (untuk user yang belum verifikasi)
+  const resendVerificationEmail = async (email, password) => {
+    // Login sementara untuk kirim ulang email verifikasi
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    await reload(result.user);
+    if (!result.user.emailVerified) {
+      await sendEmailVerification(result.user);
+    }
+    // Selalu logout setelah selesai — mencegah user masuk tanpa verifikasi
+    await signOut(auth);
+    return result;
   };
 
   // Reset password
@@ -108,7 +137,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, loginWithGoogle, loginWithEmail, registerWithEmail, resetPassword, logout }}
+      value={{ user, loading, loginWithGoogle, loginWithEmail, registerWithEmail, resetPassword, resendVerificationEmail, logout }}
     >
       {children}
     </AuthContext.Provider>

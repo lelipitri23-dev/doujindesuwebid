@@ -10,9 +10,10 @@ import {
 } from 'lucide-react';
 import AdBanner from '@/components/AdBanner';
 import { useAuth } from '@/context/AuthContext';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
 // Download limit sekarang dikelola oleh backend (POST /users/:googleId/download)
-// 20x/hari untuk member biasa, unlimited untuk premium/admin
+// 6x/HARI untuk member biasa, unlimited untuk premium/admin
 
 // Gambar dengan proteksi klik kanan & tap lama
 function ProtectedImage({ src, alt, className }) {
@@ -111,7 +112,34 @@ export default function ReaderClient() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { executeRecaptcha } = useGoogleReCaptcha();
   const { slug, chapterSlug } = params;
+
+  // Helper: verifikasi reCAPTCHA v3
+  const verifyCaptchaForDownload = useCallback(async () => {
+    if (!executeRecaptcha) {
+      window.alert('reCAPTCHA belum siap. Coba lagi sebentar.');
+      return false;
+    }
+    try {
+      const token = await executeRecaptcha('download_pdf');
+      const res = await fetch('/api/verify-captcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        window.alert(data.message || 'Verifikasi Captcha gagal. Coba lagi.');
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('[Download] captcha error:', err);
+      window.alert('Gagal memverifikasi pengguna. Coba lagi.');
+      return false;
+    }
+  }, [executeRecaptcha]);
 
   const [data, setData] = useState(null);
   const [chapterList, setChapterList] = useState([]);
@@ -125,6 +153,8 @@ export default function ReaderClient() {
   const [isAutoScrolling, setIsAutoScrolling] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(2);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [downloadCount, setDownloadCount] = useState(null);  // null = belum di-fetch
+  const [downloadLimit, setDownloadLimit] = useState(6);
 
   const lastScrollY = useRef(0);
   const scrollInterval = useRef(null);
@@ -227,6 +257,25 @@ export default function ReaderClient() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
+  // Fetch sisa download dari backend
+  useEffect(() => {
+    if (!user?.uid || user?.isPremium || user?.isAdmin) return;
+    const fetchDownloadCount = async () => {
+      try {
+        const proxyBase = `${window.location.origin}/api/proxy`;
+        const res = await fetch(`${proxyBase}/users/${user.uid}/download/status`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          setDownloadCount(json.data.used ?? 0);
+          setDownloadLimit(json.data.limit ?? 6);
+        }
+      } catch {
+        // Gagal fetch — tidak tampilkan error, hanya skip
+      }
+    };
+    fetchDownloadCount();
+  }, [user?.uid, user?.isPremium, user?.isAdmin]);
+
   const toggleMenu = (menu) => {
     if (activeMenu === menu) setActiveMenu(null);
     else {
@@ -247,12 +296,20 @@ export default function ReaderClient() {
   const isLoggedIn = !!user?.uid;
   const isUnlimitedMember = !!(user?.isPremium || user?.isAdmin);
 
+  // Deklarasikan lebih awal agar bisa dipakai di handleDownloadPdf
+  const mangaTitle = data?.chapter && data?.manga ? (data.manga?.title || '') : '';
+  const chapterTitle = data?.chapter ? (data.chapter?.title || '') : '';
+
   const handleDownloadPdf = async () => {
     if (isDownloadingPdf) return;
     if (!isLoggedIn) {
       window.alert('Silakan login untuk menggunakan fitur download PDF.');
       return;
     }
+
+    // Verifikasi reCAPTCHA v3 sebelum proses download
+    const isHuman = await verifyCaptchaForDownload();
+    if (!isHuman) return;
 
     // Cek limit download dari backend (kecuali premium/admin)
     if (!isUnlimitedMember) {
@@ -265,6 +322,8 @@ export default function ReaderClient() {
         const limitJson = await limitRes.json();
         if (limitJson.success && limitJson.data && !limitJson.data.allowed) {
           window.alert(limitJson.data.message || 'Batas download harian tercapai. Upgrade Premium untuk akses tanpa batas!');
+          // Update count ke limit agar UI menunjukkan 0 sisa
+          setDownloadCount(downloadLimit);
           return;
         }
         if (!limitJson.success) {
@@ -338,6 +397,8 @@ export default function ReaderClient() {
         .trim();
       pdf.save(`${safeTitle}.pdf`);
 
+      // Update sisa download di UI
+      setDownloadCount((prev) => (prev !== null ? prev + 1 : null));
       // Hitungan download sudah ditambah oleh backend saat cek limit
     } catch (err) {
       window.alert(`Gagal membuat PDF: ${err?.message || 'Unknown error'}`);
@@ -369,8 +430,6 @@ export default function ReaderClient() {
   );
 
   const { chapter, manga, navigation } = data;
-  const mangaTitle = manga?.title || '';
-  const chapterTitle = chapter?.title || '';
 
   return (
     <div className="bg-bg-primary min-h-screen relative text-text-primary font-sans select-none">
@@ -393,7 +452,7 @@ export default function ReaderClient() {
               Info Fitur Download PDF
             </p>
             <p className="text-[10px] text-blue-200/80 mt-0.5">
-              Member biasa memiliki batas unduhan 20x/hari. Buka menu Pengaturan (ikon Gear) di bawah untuk memproses dan mengunduh chapter.
+              Member biasa memiliki batas unduhan 6x/HARI. Buka menu Pengaturan (ikon Gear) di bawah untuk memproses dan mengunduh chapter.
             </p>
           </div>
 
@@ -508,8 +567,8 @@ export default function ReaderClient() {
             <div>
               <button
                 onClick={handleDownloadPdf}
-                disabled={isDownloadingPdf || !isLoggedIn}
-                className={`w-full flex items-center justify-between text-[11px] font-semibold px-3 py-2 rounded-lg border transition-colors mb-3 ${isDownloadingPdf || !isLoggedIn
+                disabled={isDownloadingPdf || !isLoggedIn || (!isUnlimitedMember && downloadCount !== null && downloadCount >= downloadLimit)}
+                className={`w-full flex items-center justify-between text-[11px] font-semibold px-3 py-2 rounded-lg border transition-colors mb-3 ${isDownloadingPdf || !isLoggedIn || (!isUnlimitedMember && downloadCount !== null && downloadCount >= downloadLimit)
                     ? 'text-text-muted border-border cursor-not-allowed bg-bg-elevated'
                     : 'text-text-primary border-border bg-transparent hover:border-accent-red hover:text-accent-red'
                   }`}
@@ -520,19 +579,63 @@ export default function ReaderClient() {
                     : !isLoggedIn
                       ? 'LOGIN UNTUK DOWNLOAD PDF'
                       : isUnlimitedMember
-                        ? 'DOWNLOAD CHAPTER PDF (FULL)'
-                        : 'DOWNLOAD PDF (20x/HARI)'}
+                        ? 'DOWNLOAD CHAPTER PDF (∞)'
+                        : (!isUnlimitedMember && downloadCount !== null && downloadCount >= downloadLimit)
+                          ? 'BATAS DOWNLOAD TERCAPAI'
+                          : 'DOWNLOAD CHAPTER PDF'}
                 </span>
                 <Download size={14} />
               </button>
+
+              {/* Info sisa download */}
               {!isLoggedIn && (
                 <p className="text-[10px] text-yellow-400 mb-3">
                   Fitur download PDF hanya untuk member login.
                 </p>
               )}
               {isLoggedIn && !isUnlimitedMember && (
-                <p className="text-[10px] text-yellow-400 mb-3">
-                  Member biasa dibatasi 20 download per hari. Upgrade Premium untuk akses tanpa batas.
+                <div className="mb-3">
+                  {/* Label + angka */}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Sisa Download Hari Ini</span>
+                    {downloadCount !== null ? (
+                      <span className={`text-[11px] font-bold ${downloadLimit - downloadCount <= 0
+                          ? 'text-red-400'
+                          : downloadLimit - downloadCount <= 2
+                            ? 'text-yellow-400'
+                            : 'text-green-400'
+                        }`}>
+                        {Math.max(0, downloadLimit - downloadCount)}/{downloadLimit}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-text-muted">...</span>
+                    )}
+                  </div>
+                  {/* Progress bar */}
+                  {downloadCount !== null && (
+                    <div className="w-full h-1.5 bg-bg-elevated rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${downloadLimit - downloadCount <= 0
+                            ? 'bg-red-500'
+                            : downloadLimit - downloadCount <= 2
+                              ? 'bg-yellow-400'
+                              : 'bg-green-500'
+                          }`}
+                        style={{ width: `${Math.max(0, Math.min(100, ((downloadLimit - downloadCount) / downloadLimit) * 100))}%` }}
+                      />
+                    </div>
+                  )}
+                  {/* Pesan habis */}
+                  {downloadCount !== null && downloadCount >= downloadLimit && (
+                    <p className="text-[10px] text-red-400 mt-1.5">
+                      Limit harian tercapai. Reset setiap hari. <span className="text-accent-red font-semibold">Upgrade Premium</span> untuk akses tanpa batas.
+                    </p>
+                  )}
+                </div>
+              )}
+              {isLoggedIn && isUnlimitedMember && (
+                <p className="text-[10px] text-green-400 mb-3">
+                  ✓ Download tidak terbatas (Premium)
                 </p>
               )}
 
@@ -588,8 +691,8 @@ export default function ReaderClient() {
                     key={ch._id || ch.slug}
                     href={`/read/${slug}/${ch.slug}`}
                     className={`h-10 flex items-center justify-center rounded-lg text-xs font-bold transition ${isCurrent
-                        ? 'bg-accent-red text-white shadow-[0_0_10px_rgba(233,121,145,0.5)]'
-                        : 'bg-bg-elevated text-text-muted hover:bg-bg-secondary hover:text-accent-red border border-transparent hover:border-accent-red'
+                      ? 'bg-accent-red text-white shadow-[0_0_10px_rgba(233,121,145,0.5)]'
+                      : 'bg-bg-elevated text-text-muted hover:bg-bg-secondary hover:text-accent-red border border-transparent hover:border-accent-red'
                       }`}
                   >
                     {String(chNumber).length > 5 ? String(chNumber).slice(0, 5) : chNumber}

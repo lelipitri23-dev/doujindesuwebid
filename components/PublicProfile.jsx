@@ -82,7 +82,132 @@ function MangaCard({ bookmark: b }) {
   );
 }
 
-// ─── Tab Bar ──────────────────────────────────────────────
+// ─── Account Info Card (hanya tampil untuk owner) ─────────
+function AccountInfoCard({ profile }) {
+  const downloadUsed  = profile?.downloadUsed  ?? null;
+  const downloadLimit = profile?.downloadLimit ?? 6;
+  const remaining     = downloadUsed !== null ? Math.max(0, downloadLimit - downloadUsed) : null;
+  const pct           = downloadUsed !== null ? Math.max(0, Math.min(100, (remaining / downloadLimit) * 100)) : 0;
+  const isUnlimited   = profile?.isPremium || profile?.isAdmin;
+
+  const createdAt = profile?.createdAt
+    ? new Date(profile.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
+
+  const premiumUntil = profile?.premiumUntil
+    ? new Date(profile.premiumUntil)
+    : null;
+  const premiumExpired  = premiumUntil ? new Date() > premiumUntil : false;
+  const premiumLabel    = premiumUntil
+    ? premiumExpired
+      ? 'Premium Kadaluarsa'
+      : premiumUntil.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+    : profile?.isPremium ? 'Seumur Hidup' : null;
+
+  // Hari tersisa premium
+  const premiumDaysLeft = premiumUntil && !premiumExpired
+    ? Math.ceil((premiumUntil - new Date()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  return (
+    <div className="mx-4 mt-4 bg-bg-card border border-border rounded-2xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 text-accent-red">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+        </svg>
+        <span className="text-xs font-bold text-text-primary uppercase tracking-wider">Info Akun</span>
+      </div>
+
+      <div className="p-4 space-y-4">
+
+        {/* Download Limit */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5 text-text-muted">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Download Hari Ini</span>
+            </div>
+            {isUnlimited ? (
+              <span className="text-[11px] font-bold text-yellow-400">∞ Tanpa Batas</span>
+            ) : downloadUsed !== null ? (
+              <span className={`text-[11px] font-bold ${remaining === 0 ? 'text-red-400' : remaining <= 2 ? 'text-yellow-400' : 'text-green-400'}`}>
+                {remaining}/{downloadLimit} tersisa
+              </span>
+            ) : (
+              <span className="text-[11px] text-text-muted">-</span>
+            )}
+          </div>
+          {!isUnlimited && downloadUsed !== null && (
+            <div className="w-full h-1.5 bg-bg-elevated rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-700 ${
+                  remaining === 0 ? 'bg-red-500' : remaining <= 2 ? 'bg-yellow-400' : 'bg-green-500'
+                }`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          )}
+          {!isUnlimited && (
+            <p className="text-[10px] text-text-muted mt-1.5">Reset otomatis setiap hari pukul 00:00.</p>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-border" />
+
+        {/* Status Premium */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-1.5">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Status Premium</span>
+          </div>
+          <div className="text-right">
+            {profile?.isAdmin ? (
+              <span className="text-[11px] font-bold text-red-400">Admin (Unlimited)</span>
+            ) : profile?.isPremium && !premiumExpired ? (
+              <div>
+                <span className="text-[11px] font-bold text-yellow-400">Aktif</span>
+                {premiumLabel && (
+                  <p className="text-[10px] text-text-muted mt-0.5">
+                    {premiumDaysLeft !== null ? `${premiumDaysLeft} hari lagi · ` : ''}Exp: {premiumLabel}
+                  </p>
+                )}
+              </div>
+            ) : premiumExpired ? (
+              <div>
+                <span className="text-[11px] font-bold text-red-400">Kadaluarsa</span>
+                {premiumLabel && <p className="text-[10px] text-text-muted mt-0.5">{premiumLabel}</p>}
+              </div>
+            ) : (
+              <span className="text-[11px] text-text-muted">Tidak Aktif</span>
+            )}
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-border" />
+
+        {/* Tanggal Bergabung */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5 text-text-muted">
+              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Bergabung</span>
+          </div>
+          <span className="text-[11px] font-semibold text-text-secondary">
+            {createdAt || '—'}
+          </span>
+        </div>
+
+      </div>
+    </div>
+  );
+}
 const TABS = [
   { key: 'all',                   label: 'Semua' },
   { key: READING_STATUS.READING,  label: 'Dibaca' },
@@ -317,6 +442,9 @@ export default function PublicProfile({ userId }) {
             </div>
           </div>
         </div>
+
+        {/* Account Info — hanya tampil untuk owner */}
+        {isOwn && <AccountInfoCard profile={profile} />}
 
         {/* Bookmarks Section */}
         <div className="mt-5 px-4">

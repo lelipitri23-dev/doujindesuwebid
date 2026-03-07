@@ -28,7 +28,7 @@ const CHANGELOGS = [
       {
         type: 'fix',
         title: 'Limit Download Sekarang dari Server',
-        desc: 'Mengganti sistem limit download, Sekarang member biasa dibatasi 20 download per hari, dan hitungan reset otomatis setiap hari.',
+        desc: 'Mengganti sistem limit download, Sekarang member biasa dibatasi 6 download per hari, dan hitungan reset otomatis setiap hari.',
       },
       {
         type: 'feature',
@@ -53,7 +53,7 @@ const CHANGELOGS = [
       {
         type: 'fix',
         title: 'Limit Download untuk Pengguna Baru',
-        desc: 'Setiap anggota yang baru mendaftar atau login akan otomatis menerima alokasi kuota 20 kali unduhan per hari secara Default dari sisi server.',
+        desc: 'Setiap anggota yang baru mendaftar atau login akan otomatis menerima alokasi kuota 6 kali unduhan per hari secara Default dari sisi server.',
       },
       {
         type: 'feature',

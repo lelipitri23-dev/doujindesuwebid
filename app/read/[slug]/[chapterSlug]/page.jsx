@@ -1,8 +1,9 @@
 import ReaderClient from './ReaderClient';
+import CaptchaWrapper from '@/components/CaptchaWrapper';
 
-const SITE_URL  = process.env.NEXT_PUBLIC_SITE_URL  || 'https://doujindesu.online';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://doujindesu.online';
 const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME || 'DoujinDesu';
-const BACKEND   = (process.env.NEXT_PUBLIC_API_URL  || 'http://localhost:5000/api').replace(/\/+$/, '');
+const BACKEND = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').replace(/\/+$/, '');
 
 async function getChapterData(slug, chapterSlug) {
   try {
@@ -43,11 +44,11 @@ export async function generateMetadata({ params }) {
   }
 
   const { manga, chapter } = data;
-  const cleanTitle   = cleanChapterTitle(manga.title, chapter.title);
-  const title        = `Baca ${manga.title} Chapter ${cleanTitle} Bahasa Indonesia`;
-  const description  = `Baca ${title} bahasa Indonesia gratis di ${SITE_NAME}`;
+  const cleanTitle = cleanChapterTitle(manga.title, chapter.title);
+  const title = `${manga.title} Chapter ${cleanTitle} Bahasa Indonesia`;
+  const description = `Baca ${title} bahasa Indonesia gratis di ${SITE_NAME}`;
   const canonicalUrl = `${SITE_URL}/read/${slug}/${chapterSlug}`;
-  const coverImage   = manga.coverImage || `${SITE_URL}/og-image.png`;
+  const coverImage = manga.coverImage || `${SITE_URL}/og-image.png`;
 
   return {
     title,
@@ -70,23 +71,23 @@ export default async function ReaderPage({ params }) {
   const { slug, chapterSlug } = await params;
   const data = await getChapterData(slug, chapterSlug);
 
-  const manga   = data?.manga;
+  const manga = data?.manga;
   const chapter = data?.chapter;
 
-  const cleanTitle   = manga && chapter
+  const cleanTitle = manga && chapter
     ? cleanChapterTitle(manga.title, chapter.title)
     : chapterSlug;
 
   const canonicalUrl = `${SITE_URL}/read/${slug}/${chapterSlug}`;
-  const mangaUrl     = `${SITE_URL}/manga/${slug}`;
+  const mangaUrl = `${SITE_URL}/manga/${slug}`;
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home',           item: SITE_URL },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
       { '@type': 'ListItem', position: 2, name: manga?.title || 'Manga', item: mangaUrl },
-      { '@type': 'ListItem', position: 3, name: cleanTitle,        item: canonicalUrl },
+      { '@type': 'ListItem', position: 3, name: cleanTitle, item: canonicalUrl },
     ],
   };
 
@@ -96,7 +97,9 @@ export default async function ReaderPage({ params }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
-      <ReaderClient />
+      <CaptchaWrapper>
+        <ReaderClient />
+      </CaptchaWrapper>
     </>
   );
 }

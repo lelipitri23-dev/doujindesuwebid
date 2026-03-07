@@ -21,7 +21,7 @@ export async function generateMetadata({ params }) {
   const synopsis = manga.synopsis || '';
 
   return {
-    title: `Baca ${type || 'Komik'} ${manga.title} Bahasa Indonesia`,
+    title: `${manga.title} Bahasa Indonesia`,
     description: `Baca ${manga.title} - ${type || 'Komik'} ${status}. ${synopsis?.slice(0, 120) || ''}`,
     openGraph: {
       title: manga.title,

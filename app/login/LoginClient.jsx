@@ -1,8 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
 const getErrorMessage = (code) => {
   const map = {
@@ -15,15 +16,16 @@ const getErrorMessage = (code) => {
     'auth/popup-closed-by-user': 'Login dibatalkan.',
     'auth/network-request-failed': 'Tidak ada koneksi internet.',
     'auth/invalid-credential': 'Email atau password salah.',
+    'auth/email-not-verified': 'Email belum diverifikasi. Cek inbox kamu.',
   };
   return map[code] || 'Terjadi kesalahan. Silakan coba lagi.';
 };
 
 export default function LoginClient() {
   const router = useRouter();
-  const { loginWithGoogle, loginWithEmail, registerWithEmail, resetPassword } = useAuth();
+  const { loginWithGoogle, loginWithEmail, registerWithEmail, resetPassword, resendVerificationEmail } = useAuth();
 
-  const [mode, setMode] = useState('login'); // 'login' | 'register' | 'reset'
+  const [mode, setMode] = useState('login'); // 'login' | 'register' | 'reset' | 'verify'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -31,13 +33,85 @@ export default function LoginClient() {
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const cooldownRef = useRef(null);
+
+  const { executeRecaptcha } = useGoogleReCaptcha();
+
+  const verifyCaptcha = async (action) => {
+    if (!executeRecaptcha) {
+      setError('Captcha belum siap. Coba lagi sebentar.');
+      return false;
+    }
+    try {
+      const token = await executeRecaptcha(action);
+      const res = await fetch('/api/verify-captcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setError(data.message || 'Verifikasi Captcha gagal.');
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Captcha error:', err);
+      setError('Gagal memverifikasi pengguna. Coba lagi.');
+      return false;
+    }
+  };
+
+  // Cooldown timer untuk tombol kirim ulang — pakai ref agar bisa dibersihkan saat unmount
+  const startResendCooldown = () => {
+    if (cooldownRef.current) clearInterval(cooldownRef.current);
+    setResendCooldown(60);
+    cooldownRef.current = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(cooldownRef.current);
+          cooldownRef.current = null;
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // Bersihkan interval saat komponen unmount
+  useEffect(() => {
+    return () => {
+      if (cooldownRef.current) clearInterval(cooldownRef.current);
+    };
+  }, []);
 
   const handleGoogle = async () => {
     setError('');
     setLoading(true);
+    const isHuman = await verifyCaptcha('login_google');
+    if (!isHuman) { setLoading(false); return; }
     try {
       await loginWithGoogle();
       router.replace('/');
+    } catch (e) {
+      setError(getErrorMessage(e.code));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (resendCooldown > 0 || loading) return;
+    setError('');
+    setInfo('');
+    setLoading(true);
+    const isHuman = await verifyCaptcha('resend_verification');
+    if (!isHuman) { setLoading(false); return; }
+    try {
+      await resendVerificationEmail(email, password);
+      setInfo('Email verifikasi telah dikirim ulang. Cek inbox kamu!');
+      startResendCooldown();
     } catch (e) {
       setError(getErrorMessage(e.code));
     } finally {
@@ -50,6 +124,10 @@ export default function LoginClient() {
     setError('');
     setInfo('');
     setLoading(true);
+
+    const isHuman = await verifyCaptcha(mode);
+    if (!isHuman) { setLoading(false); return; }
+
     try {
       if (mode === 'login') {
         await loginWithEmail(email, password);
@@ -57,18 +135,127 @@ export default function LoginClient() {
       } else if (mode === 'register') {
         if (!name.trim()) { setError('Nama tidak boleh kosong'); setLoading(false); return; }
         await registerWithEmail(email, password, name.trim());
-        router.replace('/');
-      } else {
+        // Setelah register berhasil → pindah ke mode verifikasi
+        setMode('verify');
+        startResendCooldown();
+        setInfo('');
+      } else if (mode === 'reset') {
         await resetPassword(email);
         setInfo('Link reset password telah dikirim ke email kamu!');
       }
     } catch (e) {
-      setError(getErrorMessage(e.code));
+      if (e.code === 'auth/email-not-verified') {
+        // User login tapi belum verifikasi → arahkan ke mode verifikasi
+        setMode('verify');
+        startResendCooldown();
+      } else {
+        setError(getErrorMessage(e.code));
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  // ─── UI: Mode Verifikasi Email ───────────────────────────────
+  if (mode === 'verify') {
+    return (
+      <div className="min-h-screen bg-bg-primary flex flex-col">
+        <div className="px-4 pt-12 pb-4">
+          <button
+            onClick={() => { setMode('login'); setError(''); setInfo(''); }}
+            className="inline-flex items-center gap-2 text-text-muted hover:text-text-primary transition-colors text-sm"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            Kembali ke login
+          </button>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center px-4 pb-10">
+          <div className="w-full max-w-sm">
+            <div className="text-center mb-8">
+              <Link href="/" className="inline-flex items-center gap-1">
+                <span className="font-display text-3xl text-accent-red tracking-widest">{process.env.NEXT_PUBLIC_SITE_NAME}</span>
+              </Link>
+            </div>
+
+            <div className="bg-bg-card border border-border rounded-2xl p-6 shadow-2xl text-center">
+              {/* Icon envelope */}
+              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-accent-red/10 border border-accent-red/30 mx-auto mb-5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-8 h-8 text-accent-red">
+                  <rect x="2" y="4" width="20" height="16" rx="2" />
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
+              </div>
+
+              <h2 className="text-text-primary font-bold text-lg mb-2">Verifikasi Email Kamu</h2>
+              <p className="text-text-muted text-sm mb-1">
+                Kami telah mengirim link verifikasi ke:
+              </p>
+              <p className="text-accent-red font-semibold text-sm mb-5 break-all">{email}</p>
+              <p className="text-text-muted text-xs mb-6 leading-relaxed">
+                Buka email tersebut dan klik link verifikasi. Setelah terverifikasi, kamu bisa masuk ke akunmu.
+              </p>
+
+              {/* Error & Info */}
+              {error && (
+                <div className="flex items-center gap-2 bg-red-900/30 border border-red-800 rounded-xl px-3 py-2.5 mb-4 text-left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 text-red-400 flex-shrink-0">
+                    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <p className="text-red-400 text-xs">{error}</p>
+                </div>
+              )}
+              {info && (
+                <div className="flex items-center gap-2 bg-green-900/30 border border-green-800 rounded-xl px-3 py-2.5 mb-4 text-left">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 text-green-400 flex-shrink-0">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <p className="text-green-400 text-xs">{info}</p>
+                </div>
+              )}
+
+              {/* Tombol sudah verifikasi → ke login */}
+              <button
+                onClick={() => { setMode('login'); setError(''); setInfo(''); }}
+                className="w-full py-3 bg-accent-red hover:bg-accent-redDark text-white font-bold rounded-xl transition-colors text-sm mb-3"
+              >
+                Sudah Verifikasi? Masuk
+              </button>
+
+              {/* Tombol kirim ulang */}
+              <button
+                onClick={handleResendVerification}
+                disabled={resendCooldown > 0 || loading}
+                className="w-full py-3 bg-bg-elevated border border-border hover:border-accent-red text-text-secondary font-semibold rounded-xl transition-colors text-sm disabled:opacity-50"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+                      <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" className="opacity-75" />
+                    </svg>
+                    Mengirim...
+                  </span>
+                ) : resendCooldown > 0 ? (
+                  `Kirim Ulang (${resendCooldown}s)`
+                ) : (
+                  'Kirim Ulang Email Verifikasi'
+                )}
+              </button>
+
+              <p className="text-text-muted text-xs mt-5">
+                Cek folder <span className="text-text-secondary font-semibold">Spam</span> jika email tidak ditemukan di inbox.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── UI: Mode Login / Register / Reset ──────────────────────
   return (
     <div className="min-h-screen bg-bg-primary flex flex-col">
       {/* Back button */}

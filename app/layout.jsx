@@ -7,8 +7,8 @@ import AdScript from '@/components/AdScript';
 import AdBanner from '@/components/AdBanner';
 import ThemeProvider from '@/components/ThemeProvider';
 
-const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME || '{SITE_NAME}';
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://';
+const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME || 'Doujindesu';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://doujindesu.web.id';
 const SITE_DESC = `UPDATE Doujinshi setiap hari hanya di ${SITE_NAME}. Doujinshi disini bermuatan konten dewasa, jadi sesuaikanlah dengan bijak antara bacaan anda dengan umur anda. Semua doujin disini hanya fiktif belaka.`;
 
 export const metadata = {
@@ -90,7 +90,6 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="bg-bg-primary text-text-primary font-body antialiased">
-
         <Script
           id="histats"
           strategy="afterInteractive"

@@ -1,4 +1,5 @@
 import LoginClient from './LoginClient';
+import CaptchaWrapper from '@/components/CaptchaWrapper';
 
 export const metadata = {
   title: `Masuk`,
@@ -11,5 +12,9 @@ export const metadata = {
 };
 
 export default function LoginPage() {
-  return <LoginClient />;
+  return (
+    <CaptchaWrapper>
+      <LoginClient />
+    </CaptchaWrapper>
+  );
 }
