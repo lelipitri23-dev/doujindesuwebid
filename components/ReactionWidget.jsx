@@ -97,11 +97,11 @@ export default function ReactionWidget({ slug, initialReactions }) {
   const totalResponses = Object.values(reactions).reduce((a, b) => a + (Number(b) || 0), 0);
 
   return (
-    <div className="bg-bg-card border border-border rounded-2xl p-6 mt-8 flex flex-col items-center shadow-sm">
-      <h3 className="text-xl font-bold text-text-primary mb-1">Your Reaction?</h3>
-      <p className="text-sm text-text-muted mb-6">{totalResponses} Responses</p>
+    <div className="bg-bg-card border border-border rounded-2xl p-4 sm:p-6 mt-6 sm:mt-8 flex flex-col items-center shadow-sm">
+      <h3 className="text-lg sm:text-xl font-bold text-text-primary mb-1">Your Reaction?</h3>
+      <p className="text-xs sm:text-sm text-text-muted mb-4 sm:mb-6">{totalResponses} Responses</p>
 
-      <div className="flex flex-wrap justify-center gap-4 sm:gap-8">
+      <div className="flex flex-wrap justify-center gap-3 sm:gap-6">
         {REACTION_TYPES.map((reaction) => {
           const count = reactions[reaction.id] || 0;
           const isActive = userReaction === reaction.id;
@@ -111,11 +111,11 @@ export default function ReactionWidget({ slug, initialReactions }) {
               key={reaction.id}
               onClick={() => handleReact(reaction.id)}
               disabled={isSubmitting}
-              className="flex flex-col items-center gap-2 group transition-transform hover:-translate-y-1"
+              className="flex flex-col items-center gap-1.5 sm:gap-2 group transition-transform hover:-translate-y-1"
             >
               {/* Image / Emoji container */}
               <div 
-                className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-3xl sm:text-4xl transition-all duration-300 ${
+                className={`w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-2xl sm:text-3xl transition-all duration-300 ${
                   isActive 
                     ? 'bg-accent-red/20 border-2 border-accent-red scale-110 shadow-[0_0_15px_rgba(239,68,68,0.3)]' 
                     : 'bg-bg-elevated border-2 border-transparent group-hover:bg-bg-primary group-hover:border-border'
@@ -126,10 +126,10 @@ export default function ReactionWidget({ slug, initialReactions }) {
               </div>
               
               <div className="text-center">
-                <span className={`block font-bold text-lg leading-tight transition-colors ${isActive ? 'text-accent-red' : 'text-text-primary group-hover:text-text-primary'}`}>
+                <span className={`block font-bold text-sm sm:text-lg leading-tight transition-colors ${isActive ? 'text-accent-red' : 'text-text-primary group-hover:text-text-primary'}`}>
                   {count}
                 </span>
-                <span className="block text-xs text-text-muted font-medium uppercase tracking-wide">
+                <span className="block text-[9px] sm:text-[10px] text-text-muted font-bold uppercase tracking-widest mt-0.5">
                   {reaction.label}
                 </span>
               </div>
