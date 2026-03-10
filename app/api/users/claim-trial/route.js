@@ -50,7 +50,10 @@ export async function POST(request) {
     
     await user.save();
 
-    return successResponse({}, 'Berhasil! Akun Anda kini Premium selama 2 Hari ke depan. 🚀');
+    return Response.json({ 
+      success: true, 
+      message: 'Berhasil! Akun Anda kini Premium selama 2 Hari ke depan. 🚀' 
+    });
   } catch (err) {
     console.error('Trial Claim Error:', err);
     return errorResponse(err.message, 500);
