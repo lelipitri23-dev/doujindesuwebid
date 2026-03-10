@@ -68,7 +68,7 @@ function normalizeChapterImageUrl(rawUrl) {
     'https://desu.photos/storage/uploads/'
   );
 
-  if (/^https?:\/\/(images|img)\.manhwaland\.email\//i.test(url)) {
+  if (/^https?:\/\/(images|img)\.manhwaland\.email\//i.test(url) || /^https?:\/\/desu\.photos\//i.test(url)) {
     return `/api/image-proxy?url=${encodeURIComponent(url)}`;
   }
 
