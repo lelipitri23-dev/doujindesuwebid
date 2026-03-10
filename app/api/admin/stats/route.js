@@ -1,0 +1,49 @@
+import dbConnect from '@/lib/mongodb';
+import Manga from '@/lib/models/Manga';
+import Chapter from '@/lib/models/Chapter';
+import User from '@/lib/models/User';
+import { successResponse, errorResponse } from '@/lib/api-helpers';
+
+// Helper to check if requester is admin
+async function isAdmin(request) {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return false;
+  
+  const tokenUid = authHeader.split('Bearer ')[1];
+  const ADMIN_UIDS = (process.env.NEXT_PUBLIC_ADMIN_UIDS || '').split(',').map(s => s.trim()).filter(Boolean);
+  
+  if (!tokenUid || !ADMIN_UIDS.includes(tokenUid)) {
+    return false;
+  }
+  return true;
+}
+
+export async function GET(request) {
+  try {
+    await dbConnect();
+
+    // Verify admin
+    if (!(await isAdmin(request))) {
+      return errorResponse('Akses Ditolak. Anda tidak disahkan sebagai Admin.', 403);
+    }
+
+    // Run aggregate queries concurrently for speed
+    const [totalMangas, totalChapters, totalUsers, premiumUsers] = await Promise.all([
+      Manga.countDocuments(),
+      Chapter.countDocuments(),
+      User.countDocuments(),
+      User.countDocuments({ isPremium: true })
+    ]);
+
+    return successResponse({
+      totalMangas,
+      totalChapters,
+      totalUsers,
+      premiumUsers
+    });
+
+  } catch (error) {
+    console.error('Admin Stats Error:', error);
+    return errorResponse('Gagal mengambil statistik admin: ' + error.message, 500);
+  }
+}
