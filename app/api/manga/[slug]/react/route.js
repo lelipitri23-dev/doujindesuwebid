@@ -21,7 +21,7 @@ export async function POST(request, { params }) {
     const manga = await Manga.findOneAndUpdate(
       { slug },
       { $inc: { [`reactions.${type}`]: increment } },
-      { returnDocument: 'after' } // Mongoose returns the updated document
+      { returnDocument: 'after', timestamps: false } // Mongoose returns the updated document, timestamps: false prevents bumping updatedAt
     );
 
     if (!manga) {
