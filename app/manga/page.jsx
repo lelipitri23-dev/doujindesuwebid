@@ -28,7 +28,7 @@ export async function generateMetadata({ searchParams }) {
 }
 
 export default async function BrowsePage({ searchParams }) {
-  const page = Number(searchParams?.page) || 1;
+  const page = Math.max(1, Number(searchParams?.page) || 1);
 
   // Params untuk getMangaList — hanya kirim yang ada nilainya
   const params = {
@@ -63,12 +63,15 @@ export default async function BrowsePage({ searchParams }) {
   const mangas = mangaRes?.data || [];
   const pagination = mangaRes?.pagination || {};
   const genres = genreRes?.data || [];
+  const totalPages = Math.max(1, pagination.totalPages || 1);
+  const hasPrev = page > 1;
+  const hasNext = page < totalPages;
 
   return (
     <div className="min-h-screen bg-bg-primary">
       <Navbar />
 
-      <main className="pt-14 pb-safe max-w-2xl mx-auto">
+      <main className="pt-14 pb-safe max-w-2xl mx-auto px-3 sm:px-4">
         <AdBanner slot="BROWSE_BANNER" className="mb-4" />
 
         <BrowseControl
@@ -85,14 +88,14 @@ export default async function BrowsePage({ searchParams }) {
         />
 
         {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="flex items-center justify-center gap-4 py-10 mt-4">
+        {totalPages > 1 && (
+          <div className="flex flex-wrap items-center justify-center sm:justify-between gap-3 py-8 mt-4 px-1">
             <Link
-              href={page > 1 ? buildHref(page - 1) : '#'}
-              aria-disabled={page <= 1}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border text-sm font-bold transition-all ${page > 1
+              href={hasPrev ? buildHref(page - 1) : buildHref(page)}
+              aria-disabled={!hasPrev}
+              className={`flex items-center justify-center gap-2 min-w-[110px] px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${hasPrev
                 ? 'bg-bg-elevated border-border text-text-primary hover:border-accent-red hover:text-accent-red hover:-translate-x-1'
-                : 'bg-transparent border-transparent text-text-muted opacity-50 cursor-not-allowed'
+                : 'bg-transparent border-transparent text-text-muted opacity-50 pointer-events-none'
                 }`}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
@@ -101,17 +104,17 @@ export default async function BrowsePage({ searchParams }) {
               Prev
             </Link>
 
-            <div className="flex flex-col items-center">
+            <div className="order-first sm:order-none w-full sm:w-auto flex flex-col items-center">
               <span className="text-text-primary font-bold text-sm">Halaman {page}</span>
-              <span className="text-text-muted text-[10px]">dari {pagination.totalPages}</span>
+              <span className="text-text-muted text-[10px]">dari {totalPages}</span>
             </div>
 
             <Link
-              href={page < pagination.totalPages ? buildHref(page + 1) : '#'}
-              aria-disabled={page >= pagination.totalPages}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border text-sm font-bold transition-all ${page < pagination.totalPages
+              href={hasNext ? buildHref(page + 1) : buildHref(page)}
+              aria-disabled={!hasNext}
+              className={`flex items-center justify-center gap-2 min-w-[110px] px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${hasNext
                 ? 'bg-bg-elevated border-border text-text-primary hover:border-accent-red hover:text-accent-red hover:translate-x-1'
-                : 'bg-transparent border-transparent text-text-muted opacity-50 cursor-not-allowed'
+                : 'bg-transparent border-transparent text-text-muted opacity-50 pointer-events-none'
                 }`}
             >
               Next

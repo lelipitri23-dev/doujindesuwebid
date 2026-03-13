@@ -2,9 +2,32 @@ import dbConnect from '@/lib/mongodb';
 import User from '@/lib/models/User';
 import { successResponse, errorResponse } from '@/lib/api-helpers';
 
+const INACTIVE_DAYS = 7;
+
+function buildInactiveUserQuery() {
+  const cutoffDate = new Date(Date.now() - INACTIVE_DAYS * 24 * 60 * 60 * 1000);
+  const cutoffObjectId = User.db.base.Types.ObjectId.createFromTime(
+    Math.floor(cutoffDate.getTime() / 1000)
+  );
+
+  return {
+    isAdmin: { $ne: true },
+    $or: [
+      { lastLoginAt: { $lt: cutoffDate } },
+      {
+        lastLoginAt: { $exists: false },
+        _id: { $lt: cutoffObjectId },
+      },
+    ],
+  };
+}
+
 export async function POST(request) {
   try {
     await dbConnect();
+
+    // Hapus akun non-admin yang tidak login > 7 hari.
+    await User.deleteMany(buildInactiveUserQuery());
 
     const { googleId, email, displayName, photoURL } = await request.json();
     if (!googleId) return errorResponse('googleId is required', 400);
@@ -24,11 +47,16 @@ export async function POST(request) {
         isAdmin: isUserAdmin,
         isPremium: isUserAdmin,
         dailyDownloads: { date: today, count: 0 },
+        lastLoginAt: new Date(),
       });
     } else {
       user.isAdmin = isUserAdmin;
       if (displayName) user.displayName = displayName;
       if (photoURL) user.photoURL = photoURL;
+      if (!user.createdAt && user._id?.getTimestamp) {
+        user.createdAt = user._id.getTimestamp();
+      }
+      user.lastLoginAt = new Date();
 
       if (isUserAdmin) {
         user.isPremium = true;

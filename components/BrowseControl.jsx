@@ -18,6 +18,8 @@ const ORDERS = [
 export default function BrowseControl({ genres, totalItems, q, mangas, currentFilters = {} }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const totalCount = Number(totalItems) || 0;
+  const formattedTotalCount = new Intl.NumberFormat('id-ID').format(totalCount);
 
   const [viewMode, setViewMode] = useState('grid');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -68,7 +70,7 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
   const OptionButton = ({ label, isActive, onClick }) => (
     <button
       onClick={onClick}
-      className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${isActive
+      className={`max-w-full px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors whitespace-nowrap ${isActive
           ? 'bg-accent-red border-accent-red text-white'
           : 'bg-transparent border-border text-text-muted hover:border-accent-red hover:text-text-primary'
         }`}
@@ -81,8 +83,8 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
     <>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="font-display text-2xl md:text-3xl text-text-primary tracking-wide mb-1">
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl md:text-3xl text-text-primary tracking-wide mb-1 break-words">
             {q ? (
               <span>Hasil: <span className="text-accent-red">"{q}"</span></span>
             ) : localFilter.genre ? (
@@ -94,30 +96,32 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
             )}
           </h1>
           <p className="text-text-muted text-xs md:text-sm">
-            {totalItems > 0 ? `${totalItems} judul ditemukan` : 'Tidak ada judul ditemukan'}
+            {totalCount > 0
+              ? `Menampilkan ${formattedTotalCount} judul komik`
+              : 'Tidak ada judul ditemukan'}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex w-full md:w-auto items-center justify-between md:justify-end gap-2 md:gap-3">
           {/* Toggle View */}
-          <div className="flex items-center bg-bg-elevated rounded-lg p-1 border border-border">
+          <div className="flex items-center bg-bg-elevated rounded-lg p-1 border border-border shrink-0">
             <button
               onClick={() => setViewMode('list')}
               className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-accent-red text-white' : 'text-text-muted hover:text-text-primary'}`}
             >
-              <List size={20} />
+              <List size={18} />
             </button>
             <button
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-accent-red text-white' : 'text-text-muted hover:text-text-primary'}`}
             >
-              <Grid size={20} />
+              <Grid size={18} />
             </button>
           </div>
 
           <button
             onClick={() => setIsFilterOpen(true)}
-            className="relative flex items-center gap-2 px-4 py-2.5 bg-bg-elevated border border-border rounded-lg text-text-secondary hover:border-accent-red hover:text-accent-red transition-all"
+            className="relative flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-bg-elevated border border-border rounded-lg text-text-secondary hover:border-accent-red hover:text-accent-red transition-all min-w-[120px]"
           >
             <Filter size={18} />
             <span className="text-sm font-bold">Filter</span>
@@ -159,17 +163,17 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
 
       {/* Filter Modal */}
       {isFilterOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsFilterOpen(false)} />
-          <div className="relative w-full max-w-lg bg-bg-card border border-border rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="relative w-full sm:max-w-lg bg-bg-card border border-border sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col h-[88vh] sm:h-auto sm:max-h-[85vh]">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border">
               <h2 className="text-lg font-bold text-text-primary">Filter Komik</h2>
               <button onClick={() => setIsFilterOpen(false)} className="text-text-muted hover:text-accent-red">
                 <X size={24} />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-6">
               {/* Urutan */}
               <div>
                 <h3 className="text-sm font-bold text-text-primary mb-3">Urutan</h3>
@@ -219,7 +223,7 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
               {genres?.length > 0 && (
                 <div>
                   <h3 className="text-sm font-bold text-text-primary mb-3">Genre</h3>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 overflow-hidden">
                     <OptionButton
                       label="Semua"
                       isActive={localFilter.genre === ''}
@@ -239,7 +243,7 @@ export default function BrowseControl({ genres, totalItems, q, mangas, currentFi
 
             </div>
 
-            <div className="p-4 border-t border-border bg-bg-card rounded-b-2xl flex gap-3">
+            <div className="p-4 border-t border-border bg-bg-card sm:rounded-b-2xl flex gap-3">
               <button
                 onClick={clearFilter}
                 className="flex-1 py-3 rounded-xl border border-border text-text-primary font-bold text-sm hover:bg-bg-elevated"

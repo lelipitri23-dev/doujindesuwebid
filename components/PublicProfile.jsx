@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import { getPublicBookmarks, calcBookmarkStats, READING_STATUS } from '@/lib/bookmarks';
+import { normalizeLibraryItem, calcBookmarkStats, READING_STATUS } from '@/lib/bookmarks';
 import { getPublicProfile, updateBio } from '@/lib/profile';
 import { useAuth } from '@/context/AuthContext';
 
@@ -320,12 +320,9 @@ export default function PublicProfile({ userId }) {
   const loadProfile = async () => {
     setLoading(true);
     try {
-      // getPublicProfile dari backend mengembalikan { googleId, displayName, photoURL, bio, library, stats }
-      // getPublicBookmarks mengambil library dari endpoint public-profile dan menormalisasinya
-      const [profileData, bookmarkData] = await Promise.all([
-        getPublicProfile(userId),
-        getPublicBookmarks(userId),
-      ]);
+      // Ambil public profile sekali, lalu normalisasi library jadi data bookmark.
+      const profileData = await getPublicProfile(userId);
+      const bookmarkData = (profileData?.library || []).map(normalizeLibraryItem).filter(Boolean);
       setProfile(profileData);
       setBookmarks(bookmarkData);
     } catch (err) {

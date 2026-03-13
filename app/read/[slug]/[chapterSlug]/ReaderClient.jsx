@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import AdBanner from '@/components/AdBanner';
 import { useAuth } from '@/context/AuthContext';
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
 // Download limit sekarang dikelola oleh backend (POST /users/:googleId/download)
 // 6x/HARI untuk member biasa, unlimited untuk premium/admin
@@ -117,34 +116,7 @@ export default function ReaderClient() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const { executeRecaptcha } = useGoogleReCaptcha();
   const { slug, chapterSlug } = params;
-
-  // Helper: verifikasi reCAPTCHA v3
-  const verifyCaptchaForDownload = useCallback(async () => {
-    if (!executeRecaptcha) {
-      window.alert('reCAPTCHA belum siap. Coba lagi sebentar.');
-      return false;
-    }
-    try {
-      const token = await executeRecaptcha('download_pdf');
-      const res = await fetch('/api/verify-captcha', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      });
-      const data = await res.json();
-      if (!data.success) {
-        window.alert(data.message || 'Verifikasi Captcha gagal. Coba lagi.');
-        return false;
-      }
-      return true;
-    } catch (err) {
-      console.error('[Download] captcha error:', err);
-      window.alert('Gagal memverifikasi pengguna. Coba lagi.');
-      return false;
-    }
-  }, [executeRecaptcha]);
 
   const [data, setData] = useState(null);
   const [chapterList, setChapterList] = useState([]);
@@ -311,10 +283,6 @@ export default function ReaderClient() {
       window.alert('Silakan login untuk menggunakan fitur download PDF.');
       return;
     }
-
-    // Verifikasi reCAPTCHA v3 sebelum proses download
-    const isHuman = await verifyCaptchaForDownload();
-    if (!isHuman) return;
 
     // Cek limit download dari backend (kecuali premium/admin)
     if (!isUnlimitedMember) {

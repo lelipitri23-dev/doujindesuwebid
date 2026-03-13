@@ -8,6 +8,7 @@ export default function AdminUsersList() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('created_desc');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState(null);
@@ -22,7 +23,7 @@ export default function AdminUsersList() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/users?page=${page}&limit=12&q=${encodeURIComponent(search)}`, {
+      const res = await fetch(`/api/admin/users?page=${page}&limit=12&q=${encodeURIComponent(search)}&sort=${sort}`, {
         headers: { 'Authorization': `Bearer ${user.uid}` }
       });
       const json = await res.json();
@@ -37,7 +38,7 @@ export default function AdminUsersList() {
     } finally {
       setLoading(false);
     }
-  }, [user, page, search]);
+  }, [user, page, search, sort]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -91,7 +92,7 @@ export default function AdminUsersList() {
 
       <div className="bg-bg-card border border-border rounded-2xl overflow-hidden shadow-sm flex flex-col">
         {/* Toolbar */}
-        <div className="p-4 border-b border-border flex items-center justify-between bg-bg-elevated/50">
+        <div className="p-4 border-b border-border flex items-center justify-between gap-3 bg-bg-elevated/50">
           <div className="relative w-full max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
             <input 
@@ -105,6 +106,19 @@ export default function AdminUsersList() {
               className="w-full bg-bg-primary border border-border text-text-primary text-sm rounded-lg pl-10 pr-4 py-2 focus:border-accent-red focus:ring-1 focus:ring-accent-red outline-none transition-all placeholder:text-text-muted/50"
             />
           </div>
+
+          <select
+            value={sort}
+            onChange={(e) => {
+              setSort(e.target.value);
+              setPage(1);
+            }}
+            className="w-[220px] bg-bg-primary border border-border text-text-primary text-sm rounded-lg px-3 py-2 focus:border-accent-red focus:ring-1 focus:ring-accent-red outline-none"
+            aria-label="Urutkan pengguna"
+          >
+            <option value="created_desc">Terbaru Dibuat</option>
+            <option value="created_asc">Terlama Dibuat</option>
+          </select>
         </div>
 
         {/* Table */}
@@ -148,6 +162,9 @@ export default function AdminUsersList() {
                         <div>
                           <p className="font-bold text-text-primary">{u.displayName || 'Tanpa Nama'}</p>
                           <p className="text-xs text-text-muted mt-0.5">{u.email || u.googleId}</p>
+                          <p className="text-[10px] text-text-muted mt-1">
+                            Dibuat: {u.createdAt ? new Date(u.createdAt).toLocaleDateString('id-ID') : '-'}
+                          </p>
                         </div>
                       </div>
                     </td>

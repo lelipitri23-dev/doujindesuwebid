@@ -19,6 +19,7 @@ export async function GET(request) {
     
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q') || '';
+    const sort = searchParams.get('sort') || 'created_desc';
     const { page, limit, skip } = getPaginationParams(searchParams);
 
     const matchQuery = {};
@@ -30,9 +31,14 @@ export async function GET(request) {
       ];
     }
 
+    const sortQuery =
+      sort === 'created_asc'
+        ? { createdAt: 1, _id: 1 }
+        : { createdAt: -1, _id: -1 };
+
     const users = await User.find(matchQuery)
-      .select('googleId email displayName photoURL isAdmin isPremium premiumUntil downloadCount dailyDownloads')
-      .sort({ 'dailyDownloads.count': -1, downloadCount: -1 })
+      .select('googleId email displayName photoURL isAdmin isPremium premiumUntil downloadCount dailyDownloads createdAt')
+      .sort(sortQuery)
       .skip(skip)
       .limit(limit)
       .lean();

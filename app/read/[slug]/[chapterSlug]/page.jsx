@@ -1,5 +1,4 @@
 import ReaderClient from './ReaderClient';
-import CaptchaWrapper from '@/components/CaptchaWrapper';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://doujindesu.online';
 const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME || 'DoujinDesu';
@@ -98,9 +97,7 @@ export default async function ReaderPage({ params }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
-      <CaptchaWrapper>
-        <ReaderClient />
-      </CaptchaWrapper>
+      <ReaderClient />
     </>
   );
 }

@@ -6,6 +6,9 @@ import { useTheme } from 'next-themes';
 import { useAuth } from '@/context/AuthContext';
 import { TagsIcon } from 'lucide-react';
 
+const NOTIF_CACHE_TTL_MS = 15000;
+const notificationsCache = new Map();
+
 // ─── Icons ────────────────────────────────────────────────
 function HomeIcon({ active }) {
   return (
@@ -355,15 +358,35 @@ export default function Navbar() {
   const [showNotif, setShowNotif] = useState(false);
 
   useEffect(() => {
-    if (user?.uid) {
-      fetch(`/api/users/${user.uid}/notifications`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) setNotifications(data.data);
-        })
-        .catch(err => console.error("Gagal load notif:", err));
+    const uid = user?.uid;
+    if (!uid) {
+      setNotifications([]);
+      return;
     }
-  }, [user]);
+
+    const cached = notificationsCache.get(uid);
+    if (cached && Date.now() - cached.fetchedAt < NOTIF_CACHE_TTL_MS) {
+      setNotifications(cached.data);
+      return;
+    }
+
+    let cancelled = false;
+    fetch(`/api/users/${uid}/notifications`)
+      .then(res => res.json())
+      .then(data => {
+        if (!cancelled && data.success) {
+          setNotifications(data.data);
+          notificationsCache.set(uid, { data: data.data, fetchedAt: Date.now() });
+        }
+      })
+      .catch(err => {
+        if (!cancelled) console.error('Gagal load notif:', err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -371,7 +394,11 @@ export default function Navbar() {
     if (!user?.uid || unreadCount === 0) return;
     try {
       await fetch(`/api/users/${user.uid}/notifications/read`, { method: 'PUT' });
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setNotifications(prev => {
+        const next = prev.map(n => ({ ...n, isRead: true }));
+        notificationsCache.set(user.uid, { data: next, fetchedAt: Date.now() });
+        return next;
+      });
     } catch (err) { console.error(err); }
   };
   // ==========================================
