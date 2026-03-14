@@ -9,7 +9,7 @@ export async function GET(request, { params }) {
     const { googleId } = params;
 
     const user = await User.findOne({ googleId })
-      .select('googleId displayName photoURL bio library isPremium isAdmin premiumUntil dailyDownloads createdAt telegramId telegramSyncCode hasUsedTrial')
+      .select('googleId displayName photoURL bio library isPremium isAdmin premiumUntil dailyDownloads createdAt telegramId telegramSyncCode hasUsedTrial pendingPremiumOrders')
       .lean();
 
     if (!user) return errorResponse('User not found', 404);
@@ -39,6 +39,12 @@ export async function GET(request, { params }) {
       telegramId: user.telegramId || null,
       telegramSyncCode: user.telegramSyncCode || null,
       hasUsedTrial: user.hasUsedTrial || false,
+      pendingPremiumOrders: (user.pendingPremiumOrders || []).map(o => ({
+        orderId: o.orderId,
+        days: o.days,
+        amount: o.amount,
+        createdAt: o.createdAt,
+      })),
       library,
       stats: {
         reading: stats.reading || 0,

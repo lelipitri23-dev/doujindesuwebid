@@ -3,12 +3,13 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { LayoutDashboard, BookOpen, Users, Rss, ArrowLeft, Loader2, Menu, X, Megaphone, Database } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Users, Rss, ArrowLeft, Loader2, Menu, X, Megaphone, Database, CreditCard } from 'lucide-react';
 
 const ADMIN_LINKS = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Manga & Chapters', href: '/admin/mangas', icon: BookOpen },
   { name: 'Pengguna', href: '/admin/users', icon: Users },
+  { name: 'Trakteer & Premium', href: '/admin/payments', icon: CreditCard },
   { name: 'Broadcast', href: '/admin/broadcast', icon: Rss },
   { name: 'Pengaturan Iklan', href: '/admin/ads', icon: Megaphone },
   { name: 'Database', href: '/admin/database', icon: Database },

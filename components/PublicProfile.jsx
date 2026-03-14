@@ -83,7 +83,12 @@ function MangaCard({ bookmark: b }) {
 }
 
 // ─── AccountInfoCard ─────────────────────────────────────────
-function AccountInfoCard({ profile, onGenerateTelegramCode, onClaimTrial }) {
+function AccountInfoCard({ profile, onGenerateTelegramCode, onClaimTrial, onUpgradePremium, onVerifyDirect }) {
+  const [verifyingDirect, setVerifyingDirect] = useState(false);
+  const [manualOrderId, setManualOrderId] = useState('');
+  const [showOrderHistory, setShowOrderHistory] = useState(false);
+  const pendingOrders = profile?.pendingPremiumOrders || [];
+
   const downloadUsed = profile?.downloadUsed ?? null;
   const downloadLimit = profile?.downloadLimit ?? 6;
   const remaining = downloadUsed !== null ? Math.max(0, downloadLimit - downloadUsed) : null;
@@ -194,8 +199,115 @@ function AccountInfoCard({ profile, onGenerateTelegramCode, onClaimTrial }) {
                 <span>🎁 Klaim Trial 2 Hari GRATIS!</span>
               </button>
             )}
+            {/* BUTTON UPGRADE PREMIUM */}
+            {profile && !profile.isAdmin && (!profile.isPremium || premiumExpired) && (
+              <button
+                onClick={onUpgradePremium}
+                className="mt-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all active:scale-95 flex items-center gap-1"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                <span>Upgrade Premium – Rp3.000 / 7 Hari</span>
+              </button>
+            )}
+            {/* BUTTON VERIFIKASI LANGSUNG — muncul jika ada pending order */}
+            {profile?.pendingPremiumOrders?.length > 0 && (!profile.isPremium || premiumExpired) && (
+              <button
+                onClick={() => onVerifyDirect(profile.pendingPremiumOrders.at(-1).orderId, setVerifyingDirect)}
+                disabled={verifyingDirect}
+                className="mt-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 disabled:opacity-60 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all active:scale-95 flex items-center gap-1"
+              >
+                {verifyingDirect ? (
+                  <><div className="w-2.5 h-2.5 border border-white/40 border-t-white rounded-full animate-spin" /><span>Memverifikasi...</span></>
+                ) : (
+                  <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3"><polyline points="20 6 9 17 4 12" /></svg><span>Verifikasi Pembayaran Trakteer</span></>
+                )}
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Divider */}
+        <div className="h-px bg-border" />
+
+        {/* Verifikasi Kode Manual + History — hanya tampil jika belum premium aktif */}
+        {!profile?.isAdmin && (!profile?.isPremium || premiumExpired) && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5 text-green-400 flex-shrink-0">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Verifikasi Kode Pembayaran</span>
+              </div>
+              {pendingOrders.length > 0 && (
+                <button
+                  onClick={() => setShowOrderHistory(v => !v)}
+                  className="text-[10px] text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1 transition-colors"
+                >
+                  {showOrderHistory ? 'Sembunyikan' : `Riwayat (${pendingOrders.length})`}
+                </button>
+              )}
+            </div>
+
+            {/* Input kode manual */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={manualOrderId}
+                onChange={e => setManualOrderId(e.target.value.trim())}
+                placeholder="Tempel kode order di sini (PRE-...)"
+                className="flex-1 min-w-0 bg-bg-elevated border border-border rounded-xl px-3 py-2 text-white text-[11px] font-mono outline-none focus:border-green-500/50 placeholder-text-muted transition-colors"
+              />
+              <button
+                onClick={() => {
+                  if (!manualOrderId) return;
+                  onVerifyDirect(manualOrderId, setVerifyingDirect);
+                }}
+                disabled={verifyingDirect || !manualOrderId}
+                className="flex-shrink-0 px-3 py-2 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-[11px] font-bold transition-colors flex items-center gap-1"
+              >
+                {verifyingDirect ? (
+                  <div className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5"><polyline points="20 6 9 17 4 12" /></svg>
+                )}
+              </button>
+            </div>
+            <p className="text-[10px] text-text-muted -mt-1">Masukkan kode order jika sudah bayar via Trakteer.</p>
+
+            {/* Riwayat pending orders */}
+            {showOrderHistory && pendingOrders.length > 0 && (
+              <div className="space-y-2 pt-1">
+                <p className="text-[10px] text-text-muted font-semibold uppercase tracking-wider">Riwayat Kode Order</p>
+                {[...pendingOrders].reverse().map((o) => {
+                  const date = o.createdAt
+                    ? new Date(o.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                    : '—';
+                  return (
+                    <div key={o.orderId} className="flex items-center justify-between gap-2 p-2.5 bg-bg-elevated rounded-xl border border-border">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-white font-mono text-[10px] font-bold truncate">{o.orderId}</p>
+                        <p className="text-text-muted text-[9px] mt-0.5">
+                          Rp{o.amount?.toLocaleString('id-ID')} · {o.days} hari · {date}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setManualOrderId(o.orderId);
+                          onVerifyDirect(o.orderId, setVerifyingDirect);
+                        }}
+                        disabled={verifyingDirect}
+                        className="flex-shrink-0 px-2.5 py-1.5 rounded-lg bg-green-600/20 hover:bg-green-600/40 text-green-400 text-[10px] font-bold border border-green-500/30 transition-colors disabled:opacity-50"
+                      >
+                        Verif
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Divider */}
         <div className="h-px bg-border" />
@@ -300,6 +412,227 @@ function EditBioModal({ currentBio, onSave, onClose }) {
   );
 }
 
+// ─── Premium Upgrade Modal ───────────────────────────────
+function PremiumUpgradeModal({ onClose, googleId, onSuccess }) {
+  const [step, setStep] = useState('idle'); // idle | creating | waiting | verifying | success | error
+  const [orderId, setOrderId] = useState(null);
+  const [trakteerUrl, setTrakteerUrl] = useState(null);
+  const [message, setMessage] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const handleCreateOrder = async () => {
+    setStep('creating');
+    try {
+      const res = await fetch('/api/payments/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${googleId}`,
+        },
+        body: JSON.stringify({ package: '7days' }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setOrderId(json.data.orderId);
+        setTrakteerUrl(json.data.trakteerUrl);
+        setStep('waiting');
+      } else {
+        setMessage(json.message || 'Gagal membuat order.');
+        setStep('error');
+      }
+    } catch {
+      setMessage('Gagal terhubung ke server.');
+      setStep('error');
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!orderId) return;
+    setStep('verifying');
+    try {
+      const res = await fetch('/api/payments/verify-premium', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${googleId}`,
+        },
+        body: JSON.stringify({ orderId }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setMessage(json.message);
+        setStep('success');
+        setTimeout(() => {
+          onSuccess();
+          onClose();
+        }, 2000);
+      } else {
+        setMessage(json.message || 'Pembayaran belum ditemukan.');
+        setStep('waiting');
+      }
+    } catch {
+      setMessage('Gagal memverifikasi pembayaran.');
+      setStep('waiting');
+    }
+  };
+
+  const handleCopy = () => {
+    if (!orderId) return;
+    navigator.clipboard.writeText(orderId).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center px-0 sm:px-4" onClick={onClose}>
+      <div
+        className="w-full sm:max-w-sm bg-bg-card border border-border rounded-t-3xl sm:rounded-2xl overflow-hidden animate-slide-up"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="relative px-5 pt-5 pb-4 border-b border-border bg-gradient-to-r from-purple-900/30 via-indigo-900/20 to-transparent">
+          <button onClick={onClose} className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full bg-bg-elevated text-text-muted hover:text-text-primary transition-colors">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-white"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+            </div>
+            <div>
+              <h3 className="font-bold text-text-primary text-base leading-none">Upgrade ke Premium</h3>
+              <p className="text-text-muted text-xs mt-0.5">Nikmati download tanpa batas</p>
+            </div>
+          </div>
+          {/* Package card */}
+          <div className="mt-4 p-3 rounded-xl bg-gradient-to-r from-purple-600/20 to-indigo-600/20 border border-purple-500/30 flex items-center justify-between">
+            <div>
+              <p className="text-white font-bold text-sm">7 Hari Premium</p>
+              <p className="text-text-muted text-[11px] mt-0.5">Download & baca tanpa iklan</p>
+            </div>
+            <div className="text-right">
+              <p className="text-purple-300 font-extrabold text-xl leading-none">Rp3.000</p>
+              <p className="text-text-muted text-[10px] mt-0.5">sekali bayar</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="p-5 space-y-4">
+
+          {/* Features */}
+          {(step === 'idle' || step === 'creating') && (
+            <ul className="space-y-2">
+              {[
+                { icon: '⬇️', text: 'Download chapter tanpa batas per hari' },
+                { icon: '⚡', text: 'Tidak ada iklan' },
+                { icon: '🌟', text: 'Badge Premium di profil kamu' },
+              ].map((f) => (
+                <li key={f.text} className="flex items-center gap-2.5 text-text-secondary text-xs">
+                  <span className="text-base leading-none">{f.icon}</span>
+                  {f.text}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Waiting step: show order ID + trakteer link */}
+          {(step === 'waiting' || step === 'verifying') && orderId && (
+            <div className="space-y-3">
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                <p className="text-amber-300 font-bold text-xs mb-1">📋 Kode Order Kamu</p>
+                <div className="flex items-center justify-between bg-bg-elevated rounded-lg px-3 py-2 border border-border gap-2">
+                  <span className="font-mono text-white text-sm font-bold tracking-wider flex-1 truncate">{orderId}</span>
+                  <button
+                    onClick={handleCopy}
+                    className={`text-[10px] font-bold px-2 py-1 rounded-md transition-colors flex-shrink-0 ${copied ? 'bg-green-500/20 text-green-400' : 'bg-bg-card text-text-muted hover:text-text-primary'
+                      }`}
+                  >
+                    {copied ? '✓ Disalin' : 'Salin'}
+                  </button>
+                </div>
+              </div>
+              <ol className="space-y-2 text-xs text-text-secondary">
+                <li className="flex gap-2"><span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">1</span> Klik tombol di bawah untuk membuka Trakteer</li>
+                <li className="flex gap-2"><span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">2</span> Salin kode order di atas dan tempel di kolom <b className="text-text-primary">Pesan</b> Trakteer</li>
+                <li className="flex gap-2"><span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">3</span> Bayar Rp3.000 lalu kembali ke sini dan klik Verifikasi</li>
+              </ol>
+              {message && step === 'waiting' && (
+                <p className="text-orange-400 text-[11px] bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2 leading-relaxed">{message}</p>
+              )}
+            </div>
+          )}
+
+          {/* Success */}
+          {step === 'success' && (
+            <div className="text-center py-4">
+              <div className="text-4xl mb-2">🎉</div>
+              <p className="text-green-400 font-bold text-sm">{message}</p>
+              <p className="text-text-muted text-xs mt-1">Halaman akan diperbarui otomatis...</p>
+            </div>
+          )}
+
+          {/* Error */}
+          {step === 'error' && (
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30">
+              <p className="text-red-400 text-xs font-semibold">{message}</p>
+              <button onClick={() => setStep('idle')} className="mt-2 text-[10px] text-text-muted underline">Coba lagi</button>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex flex-col gap-2 pt-1">
+            {step === 'idle' && (
+              <button
+                onClick={handleCreateOrder}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-purple-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                Buat Order & Lanjutkan Pembayaran
+              </button>
+            )}
+            {step === 'creating' && (
+              <button disabled className="w-full py-3 rounded-xl bg-purple-600/50 text-white font-bold text-sm flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Membuat Order...
+              </button>
+            )}
+            {step === 'waiting' && (
+              <>
+                <a
+                  href={trakteerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-400 hover:to-pink-500 text-white font-bold text-sm shadow-lg shadow-orange-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-center"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+                  Buka Trakteer & Bayar
+                </a>
+                <button
+                  onClick={handleVerify}
+                  className="w-full py-3 rounded-xl bg-bg-elevated border border-border hover:border-green-500/40 hover:text-green-400 text-text-secondary font-bold text-sm transition-all active:scale-[0.98]"
+                >
+                  ✓ Saya Sudah Bayar – Verifikasi Sekarang
+                </button>
+              </>
+            )}
+            {step === 'verifying' && (
+              <button disabled className="w-full py-3 rounded-xl bg-green-600/50 text-white font-bold text-sm flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Memverifikasi Pembayaran...
+              </button>
+            )}
+          </div>
+
+          <p className="text-text-muted text-[10px] text-center leading-relaxed">
+            Pembayaran diproses via Trakteer. Jika ada masalah, hubungi admin melalui Telegram.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────
 export default function PublicProfile({ userId }) {
   const { user } = useAuth();
@@ -308,6 +641,7 @@ export default function PublicProfile({ userId }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [showEditBio, setShowEditBio] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const tabsRef = useRef(null);
 
   const isOwn = user?.uid === userId;
@@ -353,6 +687,38 @@ export default function PublicProfile({ userId }) {
     } catch (err) {
       console.error(err);
       alert('Gagal membuat kode sync Telegram');
+    }
+  };
+
+  const handleUpgradePremium = () => {
+    if (!isOwn || !user?.uid) return;
+    setShowPremiumModal(true);
+  };
+
+  const handleVerifyDirect = async (orderId, setLoading) => {
+    if (!isOwn || !user?.uid || !orderId) return;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/payments/verify-premium', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.uid}`,
+        },
+        body: JSON.stringify({ orderId }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(data.message);
+        window.location.reload();
+      } else {
+        alert(data.message || 'Pembayaran belum ditemukan. Coba lagi dalam beberapa menit.');
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error('Verify direct error:', err);
+      alert('Gagal memverifikasi. Coba lagi.');
+      setLoading(false);
     }
   };
 
@@ -435,6 +801,14 @@ export default function PublicProfile({ userId }) {
           currentBio={profile?.bio}
           onSave={handleSaveBio}
           onClose={() => setShowEditBio(false)}
+        />
+      )}
+
+      {showPremiumModal && isOwn && (
+        <PremiumUpgradeModal
+          googleId={user?.uid}
+          onClose={() => setShowPremiumModal(false)}
+          onSuccess={() => { loadProfile(); window.location.reload(); }}
         />
       )}
 
@@ -533,7 +907,7 @@ export default function PublicProfile({ userId }) {
         </div>
 
         {/* Account Info — hanya tampil untuk owner */}
-        {isOwn && <AccountInfoCard profile={profile} onGenerateTelegramCode={handleGenerateTelegramCode} onClaimTrial={handleClaimTrial} />}
+        {isOwn && <AccountInfoCard profile={profile} onGenerateTelegramCode={handleGenerateTelegramCode} onClaimTrial={handleClaimTrial} onUpgradePremium={handleUpgradePremium} onVerifyDirect={handleVerifyDirect} />}
 
         {/* Bookmarks Section */}
         <div className="mt-5 px-4">
