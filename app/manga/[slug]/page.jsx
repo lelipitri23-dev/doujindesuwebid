@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import BookmarkButton from '@/components/BookmarkButton';
-import ReactionWidget from '@/components/ReactionWidget';
 import AdBanner from '@/components/AdBanner';
 import ChapterList from '@/components/ChapterList';
 
@@ -279,11 +278,6 @@ export default async function MangaDetailPage({ params }) {
             <p className="text-text-secondary text-sm leading-relaxed">{synopsis}</p>
           </div>
         )}
-
-        {/* Reaction Widget */}
-        <div className="px-4 mt-8">
-          <ReactionWidget slug={manga.slug} initialReactions={manga.reactions || {}} />
-        </div>
 
         <AdBanner slot="BEFORE_CHAPTERS" className="px-4 mt-4" />
 
