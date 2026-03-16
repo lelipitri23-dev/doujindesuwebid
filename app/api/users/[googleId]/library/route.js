@@ -32,7 +32,7 @@ export async function POST(request, { params }) {
       user.library[existingIndex].mangaData = mangaData;
       user.library[existingIndex].addedAt = Date.now();
     } else {
-      user.library.push({ slug, mangaData });
+      user.library.push({ slug, mangaData, addedAt: Date.now() });
     }
 
     await user.save();

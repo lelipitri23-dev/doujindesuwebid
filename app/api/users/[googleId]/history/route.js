@@ -35,7 +35,7 @@ export async function POST(request, { params }) {
       if (title) user.history[existingIndex].title = title;
       if (thumb) user.history[existingIndex].thumb = thumb;
     } else {
-      user.history.push({ type, slug, title, thumb, lastChapterTitle, lastChapterSlug });
+      user.history.push({ type, slug, title, thumb, lastChapterTitle, lastChapterSlug, lastRead: Date.now() });
     }
 
     await user.save();
