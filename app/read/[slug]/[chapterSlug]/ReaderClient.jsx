@@ -160,10 +160,10 @@ export default function ReaderClient() {
 
         // ── Simpan history ke backend (jika user login) ──
         const readData = jsonRead.data;
-        if (user?.uid && readData?.manga && readData?.chapter) {
+        if (user?.googleId && readData?.manga && readData?.chapter) {
           const manga = readData.manga;
           const chapter = readData.chapter;
-          fetch(`${proxyBase}/users/${user.uid}/history`, {
+          fetch(`${proxyBase}/users/${user.googleId}/history`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -197,7 +197,7 @@ export default function ReaderClient() {
       }
     }
     initReader();
-  }, [slug, chapterSlug, user?.uid]);
+  }, [slug, chapterSlug, user?.googleId]);
 
   // Auto scroll
   useEffect(() => {
@@ -236,11 +236,11 @@ export default function ReaderClient() {
 
   // Fetch sisa download dari backend
   useEffect(() => {
-    if (!user?.uid || user?.isPremium || user?.isAdmin) return;
+    if (!user?.googleId || user?.isPremium || user?.isAdmin) return;
     const fetchDownloadCount = async () => {
       try {
         const proxyBase = `/api`;
-        const res = await fetch(`${proxyBase}/users/${user.uid}/download/status`);
+        const res = await fetch(`${proxyBase}/users/${user.googleId}/download/status`);
         const json = await res.json();
         if (json.success && json.data) {
           setDownloadCount(json.data.used ?? 0);
@@ -288,7 +288,7 @@ export default function ReaderClient() {
     if (!isUnlimitedMember) {
       try {
         const proxyBase = `/api`;
-        const limitRes = await fetch(`${proxyBase}/users/${user.uid}/download`, {
+        const limitRes = await fetch(`${proxyBase}/users/${user.googleId}/download`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         });

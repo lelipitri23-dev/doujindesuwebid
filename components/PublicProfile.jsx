@@ -696,14 +696,14 @@ export default function PublicProfile({ userId }) {
   };
 
   const handleVerifyDirect = async (orderId, setLoading) => {
-    if (!isOwn || !user?.uid || !orderId) return;
+    if (!isOwn || !user?.googleId || !orderId) return;
     setLoading(true);
     try {
       const res = await fetch('/api/payments/verify-premium', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${user.uid}`,
+          Authorization: `Bearer ${user.googleId}`,
         },
         body: JSON.stringify({ orderId }),
       });
@@ -723,7 +723,7 @@ export default function PublicProfile({ userId }) {
   };
 
   const handleClaimTrial = async () => {
-    if (!isOwn || !user?.uid) return;
+    if (!isOwn || !user?.googleId) return;
 
     if (!window.confirm('Klaim Premium Gratis 2 Hari sekarang? Waktu premium akan langsung aktif dan terhitung mundur.')) return;
 
@@ -731,7 +731,7 @@ export default function PublicProfile({ userId }) {
       const res = await fetch('/api/users/claim-trial', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${user.uid}`
+          'Authorization': `Bearer ${user.googleId}`
         }
       });
       const data = await res.json();
@@ -806,7 +806,7 @@ export default function PublicProfile({ userId }) {
 
       {showPremiumModal && isOwn && (
         <PremiumUpgradeModal
-          googleId={user?.uid}
+          googleId={user?.googleId}
           onClose={() => setShowPremiumModal(false)}
           onSuccess={() => { loadProfile(); window.location.reload(); }}
         />

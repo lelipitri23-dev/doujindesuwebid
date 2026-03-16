@@ -28,10 +28,10 @@ export default function AdminEditManga({ params }) {
   });
 
   const fetchData = useCallback(async () => {
-    if (!user?.uid) return;
+    if (!user?.googleId) return;
     try {
       const res = await fetch(`/api/admin/mangas/${params.id}`, {
-        headers: { 'Authorization': `Bearer ${user.uid}` }
+        headers: { 'Authorization': `Bearer ${user.googleId}` }
       });
       const json = await res.json();
       
@@ -93,7 +93,7 @@ export default function AdminEditManga({ params }) {
     try {
       const res = await fetch(`/api/admin/mangas/${params.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.uid}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.googleId}` },
         body: JSON.stringify(payload)
       });
       const json = await res.json();
@@ -155,7 +155,7 @@ export default function AdminEditManga({ params }) {
     try {
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.uid}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.googleId}` },
         body: JSON.stringify(payload)
       });
       const json = await res.json();
@@ -175,7 +175,7 @@ export default function AdminEditManga({ params }) {
     try {
       const res = await fetch(`/api/admin/chapters/${id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${user.uid}` }
+        headers: { 'Authorization': `Bearer ${user.googleId}` }
       });
       if ((await res.json()).success) {
         fetchData();

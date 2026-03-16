@@ -2,6 +2,7 @@ const ALLOWED_HOSTS = new Set([
   'desu.photos',
   'images.manhwaland.email',
   'img.manhwaland.email',
+  'cdn-images.doujindesu.fun',
 ]);
 
 function normalizeTargetUrl(rawUrl) {

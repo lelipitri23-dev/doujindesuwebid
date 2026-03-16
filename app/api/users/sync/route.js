@@ -33,9 +33,23 @@ export async function POST(request) {
     if (!googleId) return errorResponse('googleId is required', 400);
 
     const ADMIN_UIDS = (process.env.NEXT_PUBLIC_ADMIN_UIDS || '').split(',').map(s => s.trim()).filter(Boolean);
-    const isUserAdmin = ADMIN_UIDS.includes(googleId);
+    const isUserAdmin = ADMIN_UIDS.includes(googleId) || ADMIN_UIDS.includes(email);
 
+    // 1. Cari by googleId dulu
     let user = await User.findOne({ googleId });
+
+    // 2. Jika tidak ketemu by googleId, cari by email (migrasi Firebase UID → Google OAuth ID)
+    if (!user && email) {
+      user = await User.findOne({ email });
+      if (user) {
+        // Hapus user lama dengan googleId yang berbeda (duplikat) jika ada
+        await User.deleteOne({ googleId, _id: { $ne: user._id } });
+        // Update googleId ke yang baru (Google OAuth ID)
+        user.googleId = googleId;
+        console.log(`[sync] Migrated user ${email}: ${user.googleId} → ${googleId}`);
+      }
+    }
+
     const today = new Date().toISOString().split('T')[0];
 
     if (!user) {

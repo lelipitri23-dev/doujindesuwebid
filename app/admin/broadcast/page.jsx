@@ -27,7 +27,7 @@ export default function AdminBroadcast() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          adminId: user.uid, 
+          adminId: user.googleId, 
           title: title.trim(), 
           message: message.trim() 
         })

@@ -35,10 +35,10 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     async function fetchStats() {
-      if (!user?.uid) return;
+      if (!user?.googleId) return;
       try {
         const res = await fetch('/api/admin/stats', {
-          headers: { 'Authorization': `Bearer ${user.uid}` }
+          headers: { 'Authorization': `Bearer ${user.googleId}` }
         });
         const json = await res.json();
         

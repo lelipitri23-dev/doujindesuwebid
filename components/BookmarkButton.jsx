@@ -32,7 +32,7 @@ export default function BookmarkButton({ manga }) {
   useEffect(() => {
     if (!user || !manga?.slug) { setChecked(true); return; }
     let cancelled = false;
-    getBookmarkData(user.uid, manga.slug)
+    getBookmarkData(user.googleId, manga.slug)
       .then((data) => {
         if (!cancelled) {
           setSaved(!!data);
@@ -59,7 +59,7 @@ export default function BookmarkButton({ manga }) {
     if (!user) { router.push('/login'); return; }
     setLoading(true);
     try {
-      const nowSaved = await toggleBookmark(user.uid, {
+      const nowSaved = await toggleBookmark(user.googleId, {
         slug: manga.slug,
         title: manga.title,
         coverImage: manga.coverImage || manga.thumb || '',
@@ -92,7 +92,7 @@ export default function BookmarkButton({ manga }) {
     setReadingStatus(newStatus);
     if (saved) {
       try {
-        await updateReadingStatus(user.uid, manga.slug, newStatus);
+        await updateReadingStatus(user.googleId, manga.slug, newStatus);
       } catch (err) {
         console.error('[Bookmark] Update status gagal:', err.message);
       }

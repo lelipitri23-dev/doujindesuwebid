@@ -41,20 +41,27 @@ export function AuthProvider({ children }) {
         // 1. Cek admin berdasarkan UID (tidak perlu backend)
         const isAdminByUID = getAdminUids().includes(firebaseUser.uid);
 
-        // 2. Set user dengan default isAdmin & isPremium = false dulu
+        // 2. Ambil Google OAuth ID dari providerData (konsisten dengan Flutter Google Sign-In)
+        // Fallback ke Firebase UID jika login dengan email (bukan Google)
+        const googleProvider = firebaseUser.providerData?.find(p => p.providerId === 'google.com');
+        const consistentId = googleProvider?.uid ?? firebaseUser.uid;
+
+        // Set user dengan default isAdmin & isPremium = false dulu
         const baseUser = {
           ...firebaseUser,
+          googleId: consistentId, // Tambah googleId untuk API calls
           isAdmin: isAdminByUID,
           isPremium: false,
         };
 
         try {
+
           // 3. Sync ke backend & ambil status premium
           const res = await fetch(`/api/users/sync`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              googleId: firebaseUser.uid,
+              googleId: consistentId,
               email: firebaseUser.email,
               displayName: firebaseUser.displayName,
               photoURL: firebaseUser.photoURL,

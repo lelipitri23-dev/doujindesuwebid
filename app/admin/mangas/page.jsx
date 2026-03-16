@@ -14,12 +14,12 @@ export default function AdminMangasList() {
   const [error, setError] = useState(null);
 
   const fetchMangas = useCallback(async () => {
-    if (!user?.uid) return;
+    if (!user?.googleId) return;
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(`/api/admin/mangas?page=${page}&limit=12&q=${encodeURIComponent(search)}`, {
-        headers: { 'Authorization': `Bearer ${user.uid}` }
+        headers: { 'Authorization': `Bearer ${user.googleId}` }
       });
       const json = await res.json();
       if (json.success) {
@@ -48,7 +48,7 @@ export default function AdminMangasList() {
     try {
       const res = await fetch(`/api/admin/mangas/${id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${user.uid}` }
+        headers: { 'Authorization': `Bearer ${user.googleId}` }
       });
       const json = await res.json();
       if (json.success) {

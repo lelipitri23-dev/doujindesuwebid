@@ -215,7 +215,7 @@ export default function HistoryList() {
   const fetchHistory = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getUserHistory(user.uid);
+      const res = await getUserHistory(user.googleId);
       const rawData = Array.isArray(res.data) ? res.data : [];
 
       // Logic Autodelete: Filter out history older than 24 hours
@@ -246,7 +246,7 @@ export default function HistoryList() {
       // Digunakan untuk menjaga server db tetap ringan
       if (expiredSlugs.length > 0) {
         expiredSlugs.forEach(slug => {
-          removeFromHistory(user.uid, slug).catch(err => {
+          removeFromHistory(user.googleId, slug).catch(err => {
             console.warn(`Gagal hapus riwayat usang untuk ${slug}:`, err);
           });
         });
@@ -259,13 +259,13 @@ export default function HistoryList() {
     } finally {
       setLoading(false);
     }
-  }, [user?.uid]);
+  }, [user?.googleId]);
 
   // Hapus satu item
   const handleRemove = async (slug) => {
     setRemoving(slug);
     try {
-      await removeFromHistory(user.uid, slug);
+      await removeFromHistory(user.googleId, slug);
       setHistory(prev => prev.filter(h => h.slug !== slug));
     } catch (err) {
       console.error('[History] remove error:', err);
@@ -279,7 +279,7 @@ export default function HistoryList() {
     setConfirm(null);
     setClearingAll(true);
     try {
-      await clearHistory(user.uid);
+      await clearHistory(user.googleId);
       setHistory([]);
     } catch (err) {
       console.error('[History] clear error:', err);

@@ -54,7 +54,7 @@ export default function PaymentsAdminPage() {
     setError(null);
     try {
       const res = await fetch('/api/admin/trakteer', {
-        headers: { Authorization: `Bearer ${user.uid}` },
+        headers: { Authorization: `Bearer ${user.googleId}` },
       });
       const json = await res.json();
       if (json.success) setData(json.data);

@@ -22,7 +22,7 @@ export default function DatabasePage() {
     try {
       const res = await fetch(`/api/admin/database/backup?format=${downloadFormat}`, {
         headers: {
-          'Authorization': `Bearer ${user.uid}` // Using standard UID based check here for consistency
+          'Authorization': `Bearer ${user.googleId}` // Using googleId for consistent user identification
         }
       });
       
@@ -80,7 +80,7 @@ export default function DatabasePage() {
       const res = await fetch('/api/admin/database/restore', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${user.uid}`
+          'Authorization': `Bearer ${user.googleId}`
         },
         body: formData
       });

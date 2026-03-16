@@ -131,7 +131,7 @@ function UserMenu({ user, logout }) {
               </p>
               <p className="text-text-muted text-xs truncate">{user.email}</p>
             </div>
-            <Link href={`/user/${user.uid}`} onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 text-text-secondary hover:bg-bg-elevated hover:text-text-primary transition-colors text-sm">
+            <Link href={`/user/${user.googleId}`} onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 text-text-secondary hover:bg-bg-elevated hover:text-text-primary transition-colors text-sm">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
               Profil Saya
             </Link>
@@ -358,25 +358,25 @@ export default function Navbar() {
   const [showNotif, setShowNotif] = useState(false);
 
   useEffect(() => {
-    const uid = user?.uid;
-    if (!uid) {
+    const googleId = user?.googleId;
+    if (!googleId) {
       setNotifications([]);
       return;
     }
 
-    const cached = notificationsCache.get(uid);
+    const cached = notificationsCache.get(googleId);
     if (cached && Date.now() - cached.fetchedAt < NOTIF_CACHE_TTL_MS) {
       setNotifications(cached.data);
       return;
     }
 
     let cancelled = false;
-    fetch(`/api/users/${uid}/notifications`)
+    fetch(`/api/users/${googleId}/notifications`)
       .then(res => res.json())
       .then(data => {
         if (!cancelled && data.success) {
           setNotifications(data.data);
-          notificationsCache.set(uid, { data: data.data, fetchedAt: Date.now() });
+          notificationsCache.set(googleId, { data: data.data, fetchedAt: Date.now() });
         }
       })
       .catch(err => {
@@ -386,17 +386,17 @@ export default function Navbar() {
     return () => {
       cancelled = true;
     };
-  }, [user?.uid]);
+  }, [user?.googleId]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   const handleMarkAsRead = async () => {
-    if (!user?.uid || unreadCount === 0) return;
+    if (!user?.googleId || unreadCount === 0) return;
     try {
-      await fetch(`/api/users/${user.uid}/notifications/read`, { method: 'PUT' });
+      await fetch(`/api/users/${user.googleId}/notifications/read`, { method: 'PUT' });
       setNotifications(prev => {
         const next = prev.map(n => ({ ...n, isRead: true }));
-        notificationsCache.set(user.uid, { data: next, fetchedAt: Date.now() });
+        notificationsCache.set(user.googleId, { data: next, fetchedAt: Date.now() });
         return next;
       });
     } catch (err) { console.error(err); }

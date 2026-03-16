@@ -19,12 +19,12 @@ export default function AdminUsersList() {
   const [premiumDays, setPremiumDays] = useState(30);
 
   const fetchUsers = useCallback(async () => {
-    if (!user?.uid) return;
+    if (!user?.googleId) return;
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(`/api/admin/users?page=${page}&limit=12&q=${encodeURIComponent(search)}&sort=${sort}`, {
-        headers: { 'Authorization': `Bearer ${user.uid}` }
+        headers: { 'Authorization': `Bearer ${user.googleId}` }
       });
       const json = await res.json();
       if (json.success) {
@@ -62,7 +62,7 @@ export default function AdminUsersList() {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.uid}` 
+          'Authorization': `Bearer ${user.googleId}` 
         },
         body: JSON.stringify(payload)
       });

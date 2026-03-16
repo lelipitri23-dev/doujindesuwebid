@@ -78,7 +78,7 @@ export default function AdminAddManga() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.uid}`
+          'Authorization': `Bearer ${user.googleId}`
         },
         body: JSON.stringify(payload)
       });

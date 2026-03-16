@@ -47,7 +47,7 @@ export default function BookmarkList() {
     setLoading(true);
     try {
       // getUserBookmarks sudah me-normalisasi data ke format yang dipakai komponen
-      const data = await getUserBookmarks(user.uid);
+      const data = await getUserBookmarks(user.googleId);
       setBookmarks(data);
     } catch (err) {
       console.error('[BookmarkList] fetch error:', err);
@@ -59,7 +59,7 @@ export default function BookmarkList() {
   const handleRemove = async (mangaSlug) => {
     setRemoving(mangaSlug);
     try {
-      await removeBookmark(user.uid, mangaSlug);
+      await removeBookmark(user.googleId, mangaSlug);
       setBookmarks(prev => prev.filter(b => b.slug !== mangaSlug));
     } catch (err) {
       console.error('[BookmarkList] remove error:', err);
@@ -71,7 +71,7 @@ export default function BookmarkList() {
   const handleStatusChange = async (mangaSlug, newStatus) => {
     setStatusMenu(null);
     try {
-      await updateReadingStatus(user.uid, mangaSlug, newStatus);
+      await updateReadingStatus(user.googleId, mangaSlug, newStatus);
       setBookmarks(prev =>
         prev.map(b => b.slug === mangaSlug ? { ...b, readingStatus: newStatus } : b)
       );

@@ -13,10 +13,10 @@ export default function AdminAdsSettings() {
 
   useEffect(() => {
     const fetchAdsConfig = async () => {
-      if (!user?.uid) return;
+      if (!user?.googleId) return;
       try {
         const res = await fetch('/api/admin/ads', {
-          headers: { 'Authorization': `Bearer ${user.uid}` }
+          headers: { 'Authorization': `Bearer ${user.googleId}` }
         });
         const json = await res.json();
         if (json.success) {
@@ -44,7 +44,7 @@ export default function AdminAdsSettings() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.uid}`
+          'Authorization': `Bearer ${user.googleId}`
         },
         body: JSON.stringify({ content: fileContent })
       });
