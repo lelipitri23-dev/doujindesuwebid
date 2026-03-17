@@ -63,6 +63,7 @@ export async function POST(request) {
         photoURL: photoURL || '',
         isAdmin: isUserAdmin,
         isPremium: isUserAdmin,
+        premiumAt: isUserAdmin ? new Date() : null,
         dailyDownloads: { date: today, count: 0 },
         lastLoginAt: new Date(),
       });
@@ -78,11 +79,13 @@ export async function POST(request) {
       user.lastLoginAt = new Date();
 
       if (isUserAdmin) {
+        if (!user.isPremium) user.premiumAt = new Date();
         user.isPremium = true;
       } else if (user.isPremium && user.premiumUntil) {
         if (new Date() > user.premiumUntil) {
           user.isPremium = false;
           user.premiumUntil = null;
+          user.premiumAt = null;
         }
       }
 

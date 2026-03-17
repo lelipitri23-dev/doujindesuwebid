@@ -14,6 +14,7 @@ export async function POST(request, { params }) {
     const user = await User.findOne({ googleId });
     if (!user) return errorResponse('User not found', 404);
 
+    if (!user.isPremium) user.premiumAt = new Date();
     user.isPremium = true;
 
     const expDate = new Date();

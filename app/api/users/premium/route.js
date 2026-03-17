@@ -9,13 +9,14 @@ export async function GET() {
 
     const now = new Date();
     const users = await User.find({
+      isAdmin: { $ne: true },
       $or: [
         { isPremium: true },
         { premiumUntil: { $gt: now } },
       ],
     })
       .select('googleId displayName photoURL premiumUntil isPremium isAdmin')
-      .sort({ premiumUntil: -1, createdAt: -1 })
+      .sort({ premiumAt: -1, createdAt: -1 })
       .limit(20)
       .lean();
 

@@ -110,6 +110,7 @@ export async function POST(request) {
       newPremiumUntil = new Date(now.getTime() + daysMs);
     }
 
+    if (!user.isPremium) user.premiumAt = now;
     user.isPremium = true;
     user.premiumUntil = newPremiumUntil;
 

@@ -42,6 +42,8 @@ export async function POST(request) {
        newPremiumUntil = new Date(Date.now() + twoDaysMs);
     }
 
+    const now = new Date();
+    if (!user.isPremium) user.premiumAt = now;
     user.isPremium = true;
     user.premiumUntil = newPremiumUntil;
     user.hasUsedTrial = true;
