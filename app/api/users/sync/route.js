@@ -32,8 +32,11 @@ export async function POST(request) {
     const { googleId, email, displayName, photoURL } = await request.json();
     if (!googleId) return errorResponse('googleId is required', 400);
 
-    const ADMIN_UIDS = (process.env.NEXT_PUBLIC_ADMIN_UIDS || '').split(',').map(s => s.trim()).filter(Boolean);
-    const isUserAdmin = ADMIN_UIDS.includes(googleId) || ADMIN_UIDS.includes(email);
+    const ADMIN_GOOGLE_IDS = (process.env.NEXT_PUBLIC_ADMIN_GOOGLE_IDS || process.env.NEXT_PUBLIC_ADMIN_UIDS || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+    const isUserAdmin = ADMIN_GOOGLE_IDS.includes(googleId) || ADMIN_GOOGLE_IDS.includes(email);
 
     // 1. Cari by googleId dulu
     let user = await User.findOne({ googleId });
@@ -65,8 +68,10 @@ export async function POST(request) {
       });
     } else {
       user.isAdmin = isUserAdmin;
-      if (displayName) user.displayName = displayName;
-      if (photoURL) user.photoURL = photoURL;
+
+      // Jangan timpa nama/foto kustom yang sudah diset user dari halaman profil
+      if (displayName && !user.displayName) user.displayName = displayName;
+      if (photoURL && !user.photoURL) user.photoURL = photoURL;
       if (!user.createdAt && user._id?.getTimestamp) {
         user.createdAt = user._id.getTimestamp();
       }

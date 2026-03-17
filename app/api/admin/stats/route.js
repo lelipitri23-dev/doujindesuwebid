@@ -9,10 +9,13 @@ async function isAdmin(request) {
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) return false;
   
-  const tokenUid = authHeader.split('Bearer ')[1];
-  const ADMIN_UIDS = (process.env.NEXT_PUBLIC_ADMIN_UIDS || '').split(',').map(s => s.trim()).filter(Boolean);
+  const tokenGoogleId = authHeader.split('Bearer ')[1];
+  const ADMIN_GOOGLE_IDS = (process.env.NEXT_PUBLIC_ADMIN_GOOGLE_IDS || process.env.NEXT_PUBLIC_ADMIN_UIDS || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
   
-  if (!tokenUid || !ADMIN_UIDS.includes(tokenUid)) {
+  if (!tokenGoogleId || !ADMIN_GOOGLE_IDS.includes(tokenGoogleId)) {
     return false;
   }
   return true;

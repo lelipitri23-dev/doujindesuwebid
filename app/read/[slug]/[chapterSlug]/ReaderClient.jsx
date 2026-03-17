@@ -251,7 +251,7 @@ export default function ReaderClient() {
       }
     };
     fetchDownloadCount();
-  }, [user?.uid, user?.isPremium, user?.isAdmin]);
+  }, [user?.googleId, user?.isPremium, user?.isAdmin]);
 
   const toggleMenu = (menu) => {
     if (activeMenu === menu) setActiveMenu(null);
@@ -270,7 +270,7 @@ export default function ReaderClient() {
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
   const scrollToBottom = () => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
 
-  const isLoggedIn = !!user?.uid;
+  const isLoggedIn = !!user?.googleId;
   const isUnlimitedMember = !!(user?.isPremium || user?.isAdmin);
 
   // Deklarasikan lebih awal agar bisa dipakai di handleDownloadPdf

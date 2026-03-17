@@ -112,7 +112,7 @@ export default function BookmarkList() {
             </div>
             <div className="flex items-center gap-2">
               <Link
-                href={`/user/${user?.uid}`}
+                href={`/user/${user?.googleId}`}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border text-text-muted text-xs font-semibold hover:border-accent-red/50 hover:text-text-primary transition-colors"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">

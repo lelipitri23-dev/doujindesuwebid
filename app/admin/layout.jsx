@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { Smartphone } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { LayoutDashboard, BookOpen, Users, Rss, ArrowLeft, Loader2, Menu, X, Megaphone, Database, CreditCard } from 'lucide-react';
 
@@ -13,6 +14,7 @@ const ADMIN_LINKS = [
   { name: 'Broadcast', href: '/admin/broadcast', icon: Rss },
   { name: 'Pengaturan Iklan', href: '/admin/ads', icon: Megaphone },
   { name: 'Database', href: '/admin/database', icon: Database },
+  { name: 'Versi Aplikasi', href: '/admin/app-version', icon: Smartphone },
 ];
 
 export default function AdminLayout({ children }) {
@@ -46,10 +48,10 @@ export default function AdminLayout({ children }) {
 
   return (
     <div className="flex h-screen bg-bg-primary text-text-primary overflow-hidden">
-      
+
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden backdrop-blur-sm"
           onClick={() => setIsSidebarOpen(false)}
         />
@@ -73,16 +75,15 @@ export default function AdminLayout({ children }) {
           {ADMIN_LINKS.map((link) => {
             const Icon = link.icon;
             const isActive = pathname === link.href || (pathname.startsWith(link.href) && link.href !== '/admin');
-            
+
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
-                  isActive 
-                    ? 'bg-accent-red/10 text-accent-red' 
-                    : 'text-text-muted hover:text-text-primary hover:bg-bg-elevated'
-                }`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${isActive
+                  ? 'bg-accent-red/10 text-accent-red'
+                  : 'text-text-muted hover:text-text-primary hover:bg-bg-elevated'
+                  }`}
               >
                 <Icon className="w-5 h-5" />
                 {link.name}
@@ -92,7 +93,7 @@ export default function AdminLayout({ children }) {
         </nav>
 
         <div className="p-4 border-t border-border mt-auto">
-          <Link 
+          <Link
             href="/"
             className="flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition-colors"
           >
@@ -106,7 +107,7 @@ export default function AdminLayout({ children }) {
       <main className="flex-1 flex flex-col h-screen overflow-hidden bg-bg-primary w-full lg:w-auto">
         <header className="h-16 flex-shrink-0 border-b border-border bg-bg-card flex items-center justify-between px-4 lg:px-8">
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => setIsSidebarOpen(true)}
               className="lg:hidden p-2 -ml-2 text-text-muted hover:text-text-primary hover:bg-bg-elevated rounded-lg"
             >

@@ -81,7 +81,7 @@ export default function AdminEditManga({ params }) {
 
   const handleUpdateManga = async (e) => {
     e.preventDefault();
-    if (!user?.uid) return;
+    if (!user?.googleId) return;
     setSaving(true);
     
     const payload = {
@@ -137,7 +137,7 @@ export default function AdminEditManga({ params }) {
 
   const saveChapter = async (e) => {
     e.preventDefault();
-    if (!user?.uid) return;
+    if (!user?.googleId) return;
     
     const payload = {
       manga_id: params.id,

@@ -34,7 +34,7 @@ export default function AdminAdsSettings() {
   }, [user]);
 
   const handleSave = async () => {
-    if (!user?.uid) return;
+    if (!user?.googleId) return;
     setSaving(true);
     setError(null);
     setSuccessMsg('');

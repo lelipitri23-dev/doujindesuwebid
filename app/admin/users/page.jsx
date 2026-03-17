@@ -48,7 +48,7 @@ export default function AdminUsersList() {
   }, [fetchUsers]);
 
   const togglePremium = async (u, action) => {
-    if (!user?.uid) return;
+    if (!user?.googleId) return;
     
     const payload = {
         isPremium: action === 'grant',

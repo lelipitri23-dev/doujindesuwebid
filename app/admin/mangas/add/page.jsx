@@ -56,7 +56,7 @@ export default function AdminAddManga() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user?.uid) return;
+    if (!user?.googleId) return;
 
     if (!formData.title || !formData.slug) {
       setError('Judul dan Slug wajib diisi!');

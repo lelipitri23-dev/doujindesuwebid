@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { normalizeLibraryItem, calcBookmarkStats, READING_STATUS } from '@/lib/bookmarks';
-import { getPublicProfile, updateBio } from '@/lib/profile';
+import { getPublicProfile, updateBio, updateProfileInfo } from '@/lib/profile';
 import { useAuth } from '@/context/AuthContext';
 
 // ─── Badge ────────────────────────────────────────────────
@@ -642,9 +642,12 @@ export default function PublicProfile({ userId }) {
   const [activeTab, setActiveTab] = useState('all');
   const [showEditBio, setShowEditBio] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [photoFile, setPhotoFile] = useState(null);
+  const [savingProfile, setSavingProfile] = useState(false);
   const tabsRef = useRef(null);
 
-  const isOwn = user?.uid === userId;
+  const isOwn = user?.googleId === userId;
 
   useEffect(() => {
     if (!userId) return;
@@ -658,6 +661,7 @@ export default function PublicProfile({ userId }) {
       const profileData = await getPublicProfile(userId);
       const bookmarkData = (profileData?.library || []).map(normalizeLibraryItem).filter(Boolean);
       setProfile(profileData);
+      setNameInput(profileData?.displayName || '');
       setBookmarks(bookmarkData);
     } catch (err) {
       console.error('[PublicProfile] load error:', err);
@@ -669,6 +673,34 @@ export default function PublicProfile({ userId }) {
   const handleSaveBio = async (bio) => {
     await updateBio(userId, bio);
     setProfile(prev => ({ ...prev, bio }));
+  };
+
+  const handleSaveProfile = async () => {
+    if (!isOwn || !user?.googleId) return;
+
+    const trimmedName = nameInput.trim();
+    const form = new FormData();
+
+    if (trimmedName) form.append('displayName', trimmedName);
+    if (photoFile) form.append('photo', photoFile);
+
+    if (!form.has('displayName') && !form.has('photo')) {
+      alert('Tidak ada perubahan untuk disimpan.');
+      return;
+    }
+
+    setSavingProfile(true);
+    try {
+      const data = await updateProfileInfo(user.googleId, form, user.googleId);
+      setProfile(prev => ({ ...prev, ...data }));
+      setPhotoFile(null);
+      alert('Profil berhasil diperbarui.');
+    } catch (err) {
+      console.error('Update profile error:', err);
+      alert(err.message || 'Gagal memperbarui profil.');
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   const handleGenerateTelegramCode = async () => {
@@ -691,7 +723,7 @@ export default function PublicProfile({ userId }) {
   };
 
   const handleUpgradePremium = () => {
-    if (!isOwn || !user?.uid) return;
+    if (!isOwn || !user?.googleId) return;
     setShowPremiumModal(true);
   };
 
@@ -824,9 +856,7 @@ export default function PublicProfile({ userId }) {
                   {profile?.photoURL ? (
                     <img src={profile.photoURL} alt={displayName} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-accent-red/30 to-purple-900/50 flex items-center justify-center">
-                      <span className="text-3xl font-bold text-white">{displayName[0]?.toUpperCase()}</span>
-                    </div>
+                    <img src="/default-avatar.gif" alt="Default avatar" className="w-full h-full object-cover" />
                   )}
                 </div>
               </div>
@@ -903,6 +933,54 @@ export default function PublicProfile({ userId }) {
               <div className="w-px h-8 bg-border" />
               <StatCard value={stats.dropped} label="Dihentikan" color="text-gray-400" />
             </div>
+
+            {isOwn && (
+              <div className="mt-4 p-3 border border-border rounded-xl bg-bg-elevated flex flex-col gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-text-muted">Nama Tampilan</label>
+                  <input
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    maxLength={50}
+                    className="w-full rounded-lg border border-border bg-bg-card px-3 py-2 text-sm text-text-primary focus:border-accent-red focus:outline-none"
+                    placeholder="Nama kamu"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <label className="text-[11px] font-semibold text-text-muted">Foto Profil</label>
+                    <label className="px-3 py-2 rounded-lg border border-border bg-bg-card text-sm text-text-secondary cursor-pointer hover:border-accent-red/60 hover:text-accent-red transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
+                      />
+                      {photoFile ? 'Gambar dipilih' : 'Pilih Gambar'}
+                    </label>
+                    {photoFile && (
+                      <span className="text-[11px] text-text-muted">{photoFile.name}</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-text-muted hidden sm:inline">Maks 3MB, otomatis 512x512.</span>
+                    <button
+                      onClick={handleSaveProfile}
+                      disabled={savingProfile}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${savingProfile
+                        ? 'bg-bg-card border-border text-text-muted'
+                        : 'bg-accent-red text-white border-accent-red hover:brightness-110'}`}
+                    >
+                      {savingProfile ? 'Menyimpan...' : 'Simpan Perubahan'}
+                    </button>
+                  </div>
+                </div>
+
+                <span className="text-[11px] text-text-muted sm:hidden">Maks 3MB, otomatis 512x512.</span>
+              </div>
+            )}
           </div>
         </div>
 

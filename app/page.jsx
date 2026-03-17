@@ -1,8 +1,9 @@
-import { getHomeData } from '@/lib/api';
+import { getHomeData, getPremiumUsers } from '@/lib/api';
 import Navbar from '@/components/Navbar';
 import TrendingSlider from '@/components/TrendingSlider';
 import MangaSection from '@/components/MangaSection';
 import AdBanner from '@/components/AdBanner';
+import Link from 'next/link';
 
 export const revalidate = 300;
 
@@ -12,8 +13,13 @@ export const metadata = {
 };
 
 export default async function HomePage() {
-  const res = await getHomeData();
-  const data = res?.data || {};
+  const [homeRes, premiumRes] = await Promise.all([
+    getHomeData(),
+    getPremiumUsers(),
+  ]);
+
+  const data = homeRes?.data || {};
+  const premiumUsers = premiumRes?.data || [];
 
   const { recents = [], trending = [], manhwas = [], doujinshis = [], mangas = [] } = data;
 
@@ -47,6 +53,37 @@ export default async function HomePage() {
             </a>
           ))}
         </div>
+
+        {/* Premium Users */}
+        {premiumUsers.length > 0 && (
+          <div className="px-4 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-display text-base text-text-primary tracking-widest">USER PREMIUM</h2>
+              <span className="text-[11px] text-text-muted font-semibold">Top {premiumUsers.length}</span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+              {premiumUsers.map((u) => (
+                <Link
+                  key={u.googleId}
+                  href={`/user/${u.googleId}`}
+                  className="flex-none w-24 rounded-xl border border-border bg-bg-card p-2 hover:border-accent-red/60 transition-colors"
+                >
+                  <div className="w-full aspect-square rounded-lg overflow-hidden bg-bg-elevated mb-2">
+                    {u.photoURL ? (
+                      <img src={u.photoURL} alt={u.displayName} className="w-full h-full object-cover" />
+                    ) : (
+                      <img src="/default-avatar.gif" alt="Default avatar" className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                  <p className="text-xs font-bold text-text-primary truncate">{u.displayName}</p>
+                  {u.premiumUntil && (
+                    <p className="text-[10px] text-text-muted">Exp {new Date(u.premiumUntil).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</p>
+                  )}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Manhwa */}
         {manhwas.length > 0 && (

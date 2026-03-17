@@ -14,11 +14,11 @@ import {
 import { auth, googleProvider } from '@/lib/firebase';
 import { trackLogin, trackSignUp } from '@/lib/analytics';
 
-// ─── DAFTAR UID ADMIN ────────────────────────────────────────
+// ─── DAFTAR GOOGLE ID ADMIN ──────────────────────────────────
 // Sumber kebenaran tunggal untuk pengecekan admin (dipakai di seluruh app)
-export const getAdminUids = () => {
-  const uidsStr = process.env.NEXT_PUBLIC_ADMIN_UIDS || '';
-  return uidsStr.split(',').map(uid => uid.trim()).filter(Boolean);
+export const getAdminGoogleIds = () => {
+  const idsStr = process.env.NEXT_PUBLIC_ADMIN_GOOGLE_IDS || '';
+  return idsStr.split(',').map(id => id.trim()).filter(Boolean);
 };
 
 const AuthContext = createContext(null);
@@ -38,19 +38,19 @@ export function AuthProvider({ children }) {
           return;
         }
 
-        // 1. Cek admin berdasarkan UID (tidak perlu backend)
-        const isAdminByUID = getAdminUids().includes(firebaseUser.uid);
-
-        // 2. Ambil Google OAuth ID dari providerData (konsisten dengan Flutter Google Sign-In)
-        // Fallback ke Firebase UID jika login dengan email (bukan Google)
+        // 1. Cek admin berdasarkan GoogleID (fallback: email saja, bukan UID)
         const googleProvider = firebaseUser.providerData?.find(p => p.providerId === 'google.com');
         const consistentId = googleProvider?.uid ?? firebaseUser.uid;
+        const candidateIds = [consistentId, firebaseUser.email].filter(Boolean);
+
+        const adminList = getAdminGoogleIds();
+        const isAdminByGoogleId = candidateIds.some(id => adminList.includes(id));
 
         // Set user dengan default isAdmin & isPremium = false dulu
         const baseUser = {
           ...firebaseUser,
           googleId: consistentId, // Tambah googleId untuk API calls
-          isAdmin: isAdminByUID,
+          isAdmin: isAdminByGoogleId,
           isPremium: false,
         };
 
@@ -70,11 +70,14 @@ export function AuthProvider({ children }) {
           });
           const dbData = await res.json();
 
-          // 4. Gabungkan: admin dari UID lokal, premium dari backend
+          // 4. Gabungkan: admin dari Google ID lokal, premium dari backend
           if (dbData.success && dbData.data) {
             setUser({
               ...baseUser,
-              isAdmin: isAdminByUID || !!dbData.data.isAdmin,
+              // Sinkronkan nama & foto dari backend (hasil edit profil)
+              displayName: dbData.data.displayName || baseUser.displayName,
+              photoURL: dbData.data.photoURL || baseUser.photoURL,
+              isAdmin: isAdminByGoogleId || !!dbData.data.isAdmin,
               isPremium: !!dbData.data.isPremium,
             });
           } else {

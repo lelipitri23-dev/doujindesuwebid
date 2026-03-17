@@ -49,7 +49,7 @@ export default function PaymentsAdminPage() {
   const [activeTab, setActiveTab] = useState('trakteer');
 
   const load = async () => {
-    if (!user?.uid) return;
+    if (!user?.googleId) return;
     setLoading(true);
     setError(null);
     try {

@@ -12,7 +12,7 @@ export default function AdminBroadcast() {
 
   const handleBroadcast = async (e) => {
     e.preventDefault();
-    if (!user?.uid) return;
+    if (!user?.googleId) return;
 
     if (!title.trim() || !message.trim()) {
       alert('Judul dan Pesan wajib diisi!');
