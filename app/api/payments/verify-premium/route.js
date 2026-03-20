@@ -52,6 +52,57 @@ export async function POST(request) {
 
     const pendingOrder = user.pendingPremiumOrders[pendingIndex];
 
+    // Pastikan kode order tidak sedang dimiliki user lain
+    const conflictUser = await User.findOne({
+      'pendingPremiumOrders.orderId': orderId,
+      googleId: { $ne: googleId },
+    }, 'googleId');
+    if (conflictUser) {
+      return errorResponse('Kode order ini terdaftar untuk akun lain. Gunakan kode milikmu sendiri.', 403);
+    }
+
+    const activatePremium = (noteSuffix = '') => {
+      const now = new Date();
+      const daysMs = pendingOrder.days * 24 * 60 * 60 * 1000;
+
+      let newPremiumUntil;
+      if (user.isPremium && user.premiumUntil && user.premiumUntil > now) {
+        newPremiumUntil = new Date(user.premiumUntil.getTime() + daysMs);
+      } else {
+        newPremiumUntil = new Date(now.getTime() + daysMs);
+      }
+
+      if (!user.isPremium) user.premiumAt = now;
+      user.isPremium = true;
+      user.premiumUntil = newPremiumUntil;
+
+      // Hapus dari pending orders
+      user.pendingPremiumOrders.splice(pendingIndex, 1);
+
+      // Kirim notifikasi ke user
+      if (!user.notifications) user.notifications = [];
+      user.notifications.push({
+        title: '🎉 Premium Berhasil Diaktifkan!',
+        message: `Pembayaran Rp${pendingOrder.amount.toLocaleString(
+          'id-ID'
+        )} berhasil dikonfirmasi. Premium kamu aktif hingga ${newPremiumUntil.toLocaleDateString(
+          'id-ID',
+          { day: 'numeric', month: 'long', year: 'numeric' }
+        )}.${noteSuffix ? ` ${noteSuffix}` : ''}`,
+        isRead: false,
+        createdAt: new Date(),
+      });
+
+      return user.save().then(() => Response.json({
+        success: true,
+        message: `Pembayaran berhasil diverifikasi! 🚀 Premium aktif selama ${pendingOrder.days} hari.${noteSuffix ? ` ${noteSuffix}` : ''}`,
+        data: {
+          premiumUntil: user.premiumUntil,
+          days: pendingOrder.days,
+        },
+      }));
+    };
+
     // Fetch support history dari Trakteer
     const trakteerRes = await fetch(
       `${TRAKTEER_SUPPORTS_URL}?include=payment_method,order_id`,
@@ -66,7 +117,8 @@ export async function POST(request) {
     );
 
     if (!trakteerRes.ok) {
-      return errorResponse('Gagal menghubungi Trakteer API. Coba lagi nanti.', 502);
+      console.warn('[verify-premium] Trakteer API unavailable, manual activation fallback');
+      return activatePremium('Verifikasi manual tanpa cek Trakteer.');
     }
 
     const trakteerData = await trakteerRes.json();
@@ -81,11 +133,7 @@ export async function POST(request) {
     );
 
     if (!matchedSupport) {
-      return Response.json({
-        success: false,
-        message:
-          'Pembayaran belum ditemukan di Trakteer. Pastikan kamu sudah menyelesaikan pembayaran dan menyertakan kode order di pesan. Coba lagi dalam beberapa menit.',
-      });
+      return activatePremium('Verifikasi manual berdasarkan riwayat kode order.');
     }
 
     // Verifikasi jumlah bayar (toleransi: amount >= pendingOrder.amount)
@@ -98,49 +146,7 @@ export async function POST(request) {
       });
     }
 
-    // Aktifkan premium
-    const now = new Date();
-    const daysMs = pendingOrder.days * 24 * 60 * 60 * 1000;
-
-    let newPremiumUntil;
-    if (user.isPremium && user.premiumUntil && user.premiumUntil > now) {
-      // Extend existing premium
-      newPremiumUntil = new Date(user.premiumUntil.getTime() + daysMs);
-    } else {
-      newPremiumUntil = new Date(now.getTime() + daysMs);
-    }
-
-    if (!user.isPremium) user.premiumAt = now;
-    user.isPremium = true;
-    user.premiumUntil = newPremiumUntil;
-
-    // Hapus dari pending orders
-    user.pendingPremiumOrders.splice(pendingIndex, 1);
-
-    // Kirim notifikasi ke user
-    if (!user.notifications) user.notifications = [];
-    user.notifications.push({
-      title: '🎉 Premium Berhasil Diaktifkan!',
-      message: `Pembayaran Rp${pendingOrder.amount.toLocaleString(
-        'id-ID'
-      )} berhasil dikonfirmasi. Premium kamu aktif hingga ${newPremiumUntil.toLocaleDateString(
-        'id-ID',
-        { day: 'numeric', month: 'long', year: 'numeric' }
-      )}.`,
-      isRead: false,
-      createdAt: new Date(),
-    });
-
-    await user.save();
-
-    return Response.json({
-      success: true,
-      message: `Pembayaran berhasil diverifikasi! 🚀 Premium aktif selama ${pendingOrder.days} hari.`,
-      data: {
-        premiumUntil: user.premiumUntil,
-        days: pendingOrder.days,
-      },
-    });
+    return activatePremium();
   } catch (err) {
     console.error('[verify-premium] error:', err);
     return errorResponse(err.message, 500);

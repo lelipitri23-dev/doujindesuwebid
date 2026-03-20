@@ -86,8 +86,12 @@ function MangaCard({ bookmark: b }) {
 function AccountInfoCard({ profile, onGenerateTelegramCode, onClaimTrial, onUpgradePremium, onVerifyDirect }) {
   const [verifyingDirect, setVerifyingDirect] = useState(false);
   const [manualOrderId, setManualOrderId] = useState('');
-  const [showOrderHistory, setShowOrderHistory] = useState(false);
   const pendingOrders = profile?.pendingPremiumOrders || [];
+  // Auto open order history as soon as user has pending codes
+  const [showOrderHistory, setShowOrderHistory] = useState(pendingOrders.length > 0);
+  useEffect(() => {
+    if (pendingOrders.length > 0) setShowOrderHistory(true);
+  }, [pendingOrders.length]);
 
   const downloadUsed = profile?.downloadUsed ?? null;
   const downloadLimit = profile?.downloadLimit ?? 6;
@@ -201,13 +205,19 @@ function AccountInfoCard({ profile, onGenerateTelegramCode, onClaimTrial, onUpgr
             )}
             {/* BUTTON UPGRADE PREMIUM */}
             {profile && !profile.isAdmin && (!profile.isPremium || premiumExpired) && (
-              <button
-                onClick={onUpgradePremium}
-                className="mt-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all active:scale-95 flex items-center gap-1"
-              >
-                <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                <span>Upgrade Premium – Rp3.000 / 7 Hari</span>
-              </button>
+              <>
+                <button
+                  onClick={onUpgradePremium}
+                  disabled
+                  className="mt-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-[0_0_15px_rgba(139,92,246,0.3)] opacity-60 cursor-not-allowed flex items-center gap-1"
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                  <span>Upgrade Premium – Rp3.000 / 7 Hari</span>
+                </button>
+                <p className="mt-1 text-[10px] text-text-muted text-left max-w-[200px]">
+                  Upgrade ke VIP sedang diperbaiki. Fitur upgrade dinonaktifkan sementara.
+                </p>
+              </>
             )}
             {/* BUTTON VERIFIKASI LANGSUNG — muncul jika ada pending order */}
             {profile?.pendingPremiumOrders?.length > 0 && (!profile.isPremium || premiumExpired) && (
@@ -784,6 +794,9 @@ export default function PublicProfile({ userId }) {
   const stats = calcBookmarkStats(bookmarks);
   const total = bookmarks.length;
 
+  const pendingOrders = profile?.pendingPremiumOrders || [];
+  const latestPendingOrder = pendingOrders[pendingOrders.length - 1];
+
   const filtered = activeTab === 'all'
     ? bookmarks
     : bookmarks.filter(b => (b.readingStatus || READING_STATUS.READING) === activeTab);
@@ -985,6 +998,18 @@ export default function PublicProfile({ userId }) {
         </div>
 
         {/* Account Info — hanya tampil untuk owner */}
+        {isOwn && pendingOrders.length > 0 && (
+          <div className="mx-4 mt-3 p-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 text-[11px] text-yellow-100 flex items-start gap-2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 mt-0.5 text-yellow-300">
+              <path d="M12 9v4" /><path d="M12 17h.01" /><circle cx="12" cy="12" r="9" />
+            </svg>
+            <div className="flex-1">
+              <p className="font-semibold text-yellow-100">Kamu punya kode order VIP yang siap diverifikasi.</p>
+              <p className="text-yellow-200 mt-0.5">Buka Riwayat Kode Order di bawah untuk aktifkan VIP tanpa cek Trakteer. {latestPendingOrder?.orderId ? `(Terbaru: ${latestPendingOrder.orderId})` : ''}</p>
+            </div>
+          </div>
+        )}
+
         {isOwn && <AccountInfoCard profile={profile} onGenerateTelegramCode={handleGenerateTelegramCode} onClaimTrial={handleClaimTrial} onUpgradePremium={handleUpgradePremium} onVerifyDirect={handleVerifyDirect} />}
 
         {/* Bookmarks Section */}
