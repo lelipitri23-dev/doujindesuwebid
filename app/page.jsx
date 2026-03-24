@@ -37,6 +37,8 @@ export default async function HomePage() {
         {/* Quick type filters */}
         <div className="flex gap-2 px-4 py-3 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
           {[
+            { label: 'Bokep', href: 'https://bokeptube.online' },
+            { label: 'Hentai', href: 'https://hentaiku.web.id' },
             { label: 'Terbaru', href: '/manga?order=latest' },
             { label: 'Populer', href: '/manga?order=popular' },
             { label: 'Manga', href: '/manga?type=manga' },
